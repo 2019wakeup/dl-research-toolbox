@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap bootstrap-dry-run check mihomo-install mihomo-start mihomo-stop mihomo-status
+.PHONY: bootstrap bootstrap-dry-run check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check
 
 bootstrap:
 	bash scripts/bootstrap.sh
@@ -14,6 +14,9 @@ check:
 mihomo-install:
 	bash scripts/mihomo-install.sh
 
+mihomo-import:
+	bash scripts/mihomo-import-subscription.sh
+
 mihomo-start:
 	bash scripts/mihomo-start.sh
 
@@ -22,3 +25,6 @@ mihomo-stop:
 
 mihomo-status:
 	bash scripts/mihomo-status.sh
+
+mihomo-check:
+	bash scripts/mihomo-status.sh --strict --test-proxy

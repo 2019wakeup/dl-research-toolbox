@@ -19,18 +19,16 @@ bash scripts/bootstrap.sh
 # 安装 mihomo 到 ~/.local/opt/mihomo，并创建 ~/.local/bin/mihomo 链接。
 bash scripts/mihomo-install.sh
 
-# 准备 mihomo 配置。该模板不含任何节点或订阅。
-mkdir -p ~/.config/mihomo
-cp network/mihomo/config.yaml.example ~/.config/mihomo/config.yaml
-$EDITOR ~/.config/mihomo/config.yaml
+# 一键导入 Clash/Mihomo 订阅 URL、校验配置、启动并检查代理。
+# 脚本会无回显提示输入订阅 URL，不会把 URL 写入仓库。
+bash scripts/mihomo-import-subscription.sh
 
-# 启动代理，然后在当前 shell 中启用代理环境变量。
-bash scripts/mihomo-start.sh
+# 在当前 shell 中启用代理环境变量。
 source scripts/proxy-on.sh
 
-# 检查机器工具、GPU、网络和 mihomo 状态。
+# 检查机器工具、GPU、mihomo 监听和代理连通性。
 bash scripts/check-machine.sh
-bash scripts/mihomo-status.sh
+bash scripts/mihomo-status.sh --strict --test-proxy
 ```
 
 关闭代理环境变量和 mihomo：
@@ -40,11 +38,44 @@ source scripts/proxy-off.sh
 bash scripts/mihomo-stop.sh
 ```
 
+
+## 订阅导入
+
+推荐交互导入，订阅 URL 不会回显：
+
+```bash
+bash scripts/mihomo-import-subscription.sh
+```
+
+也可以显式传入 URL，但这可能进入 shell history：
+
+```bash
+bash scripts/mihomo-import-subscription.sh --url 'https://example.com/sub.yaml'
+```
+
+脚本会：
+
+- 下载订阅内容；
+- 识别 Clash/Mihomo YAML；
+- 给缺少运行字段的订阅补上 `mixed-port`、`external-controller`、DNS、默认规则组和规则；
+- 备份旧的 `~/.config/mihomo/config.yaml`；
+- 运行 `mihomo -t -d ~/.config/mihomo` 校验配置；
+- 启动 mihomo，并用 `mihomo-status.sh --strict --test-proxy` 检查监听和代理连通性。
+
+如果当前机器已经有旧 mihomo 占用 `7890` 端口，使用：
+
+```bash
+bash scripts/mihomo-import-subscription.sh --replace-running
+```
+
+如果订阅是 `ss://`、`vmess://`、`vless://`、`trojan://` 这类原始节点列表，脚本会拒绝导入。请使用服务商提供的 Clash/Mihomo 订阅，或先在本地转换为 YAML。
+
 ## 包含内容
 
 - `scripts/bootstrap.sh`：安装通用 Linux 科研 CLI，不安装 conda、PyTorch 或任何项目依赖。
 - `scripts/mihomo-install.sh`：从 MetaCubeX/mihomo release 下载当前架构二进制。
-- `scripts/mihomo-start.sh` / `mihomo-stop.sh` / `mihomo-status.sh`：用户态运行 mihomo。
+- `scripts/mihomo-import-subscription.sh`：输入 Clash/Mihomo 订阅 URL 后自动导入、校验、启动并检查可用性。
+- `scripts/mihomo-start.sh` / `mihomo-stop.sh` / `mihomo-status.sh`：用户态运行 mihomo；状态脚本支持 `--strict --test-proxy`。
 - `scripts/proxy-on.sh` / `proxy-off.sh`：在当前 shell 中开关 `127.0.0.1:7890` 代理变量。
 - `scripts/network-turbo-on.sh`：在 AutoDL 机器上条件启用 `/etc/network_turbo`。
 - `scripts/check-machine.sh`：检查常用工具、GPU、网络连通性和代理状态，不打印代理值。

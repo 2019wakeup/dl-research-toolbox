@@ -22,12 +22,19 @@ The bootstrap installs common Linux tools only. It does not install conda, PyTor
 
 ```bash
 bash scripts/mihomo-install.sh
-mkdir -p ~/.config/mihomo
-cp network/mihomo/config.yaml.example ~/.config/mihomo/config.yaml
-$EDITOR ~/.config/mihomo/config.yaml
+bash scripts/mihomo-import-subscription.sh
+source scripts/proxy-on.sh
 ```
 
-Paste your own proxy nodes or provider configuration into `~/.config/mihomo/config.yaml`. Keep the real config outside this repository.
+The import script prompts for a Clash/Mihomo subscription URL without echo, writes the generated config to `~/.config/mihomo/config.yaml`, validates it with `mihomo -t`, starts mihomo, then checks listeners and proxy egress. Keep the real config outside this repository.
+
+If an old mihomo process is already using the configured port, rerun with:
+
+```bash
+bash scripts/mihomo-import-subscription.sh --replace-running
+```
+
+Raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` are not imported directly. Use a Clash/Mihomo subscription URL or convert locally first.
 
 ## 4. Start proxy
 
@@ -46,7 +53,7 @@ source scripts/network-turbo-on.sh
 
 ```bash
 bash scripts/check-machine.sh
-bash scripts/mihomo-status.sh
+bash scripts/mihomo-status.sh --strict --test-proxy
 ```
 
 ## 6. Remote experiment session
