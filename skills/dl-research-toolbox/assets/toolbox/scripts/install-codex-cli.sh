@@ -177,15 +177,15 @@ ensure_path_now
 existing="$(find_codex)"
 if [ -n "$existing" ]; then
   echo "codex already installed: $existing"
-  if [ "$DRY_RUN" -eq 0 ]; then
-    "$existing" --version || true
+  if [ "$DRY_RUN" -eq 0 ] && "$existing" --version; then
+    ensure_path_persisted
+    exit 0
   fi
-  ensure_path_persisted
-  exit 0
+  echo "Existing Codex CLI is not runnable; reinstalling $CODEX_NPM_PACKAGE."
 fi
 
 run mkdir -p "$CODEX_INSTALL_PREFIX"
-run npm install -g --prefix "$CODEX_INSTALL_PREFIX" "$CODEX_NPM_PACKAGE"
+run npm install -g --prefix "$CODEX_INSTALL_PREFIX" "$CODEX_NPM_PACKAGE@latest"
 ensure_path_now
 ensure_path_persisted
 
