@@ -6,20 +6,26 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 DRY_RUN=0
 RUN_BOOTSTRAP=1
 IMPORT_SUBSCRIPTION=1
+INSTALL_CODEX_CLI=1
 REPLACE_RUNNING=0
 INSTALL_MINIMAL=1
+MIHOMO_FILE="${MIHOMO_SUBSCRIPTION_FILE:-}"
+MIHOMO_URL="${MIHOMO_SUBSCRIPTION_URL:-}"
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/network-first-setup.sh [--dry-run] [--no-bootstrap] [--no-import] [--replace-running] [--skip-minimal-packages]
+Usage: bash scripts/network-first-setup.sh [--dry-run] [--file PATH | --url URL] [--no-bootstrap] [--no-import] [--no-codex-cli] [--replace-running] [--skip-minimal-packages]
 
 Network-first setup. Install/configure mihomo before running the full bootstrap
 so apt, uv, Python package downloads, GitHub, and Hugging Face access can use the proxy.
 
 Options:
   --dry-run                Print planned steps. Does not install or import.
-  --no-bootstrap           Stop after mihomo install/import and proxy check.
+  --file PATH             Import a local Clash/Mihomo YAML file.
+  --url URL                Import a Clash/Mihomo subscription URL.
+  --no-bootstrap           Stop after mihomo install/import, proxy check, and Codex CLI install.
   --no-import              Install mihomo but do not import a subscription.
+  --no-codex-cli           Skip Codex CLI installation before full bootstrap.
   --replace-running        Replace any existing mihomo process during import.
   --skip-minimal-packages  Do not try to install ca-certificates/curl/gzip first.
   -h, --help               Show this help.
@@ -32,8 +38,11 @@ USAGE
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
+    --file|--config-file|--yaml) MIHOMO_FILE="${2:-}"; shift 2 ;;
+    --url) MIHOMO_URL="${2:-}"; shift 2 ;;
     --no-bootstrap) RUN_BOOTSTRAP=0; shift ;;
     --no-import) IMPORT_SUBSCRIPTION=0; shift ;;
+    --no-codex-cli) INSTALL_CODEX_CLI=0; shift ;;
     --replace-running) REPLACE_RUNNING=1; shift ;;
     --skip-minimal-packages) INSTALL_MINIMAL=0; shift ;;
     -h|--help)
@@ -89,7 +98,7 @@ install_minimal_packages() {
 }
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  echo "[dry-run] network-first setup order: minimal packages -> mihomo install -> subscription import -> proxy env -> full bootstrap"
+  echo "[dry-run] network-first setup order: minimal packages -> mihomo install -> config import -> proxy env -> Codex CLI -> full bootstrap"
 fi
 
 install_minimal_packages
@@ -102,6 +111,16 @@ fi
 
 if [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
   import_args=()
+  if [ -n "$MIHOMO_FILE" ] && [ -n "$MIHOMO_URL" ]; then
+    echo "Use either --file or --url, not both." >&2
+    exit 2
+  fi
+  if [ -n "$MIHOMO_FILE" ]; then
+    import_args+=(--file "$MIHOMO_FILE")
+  fi
+  if [ -n "$MIHOMO_URL" ]; then
+    import_args+=(--url "$MIHOMO_URL")
+  fi
   if [ "$REPLACE_RUNNING" -eq 1 ]; then
     import_args+=(--replace-running)
   fi
@@ -121,6 +140,14 @@ if [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
     # Keep proxy variables in this script process so the full bootstrap below uses mihomo.
     # shellcheck disable=SC1091
     source "$SCRIPT_DIR/proxy-on.sh"
+  fi
+fi
+
+if [ "$INSTALL_CODEX_CLI" -eq 1 ]; then
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] bash scripts/install-codex-cli.sh"
+  else
+    (cd "$REPO_ROOT" && bash scripts/install-codex-cli.sh)
   fi
 fi
 

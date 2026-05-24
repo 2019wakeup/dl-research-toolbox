@@ -26,7 +26,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --path ~/dl-research-toolbox
 To install with the recommended network-first order:
 
 ```bash
-bash <skill-dir>/scripts/install_toolbox.sh --path ~/dl-research-toolbox --network-first
+bash <skill-dir>/scripts/install_toolbox.sh --path ~/dl-research-toolbox --network-first --mihomo-file /path/to/mihomo.yaml
 ```
 
 To fetch the latest GitHub version instead of using the bundled asset:
@@ -39,7 +39,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 
 1. Inspect the target machine and workspace. Check existing repos, dirty worktrees, and whether `~/.config/mihomo/config.yaml` already exists.
 2. Install or update the toolbox using `scripts/install_toolbox.sh`. Use the bundled asset when GitHub credentials are unavailable; use `--from-git` when the remote repository should be the source of truth.
-3. Prefer the network-first entrypoint: `bash scripts/network-first-setup.sh`. It installs/configures mihomo first, imports the subscription, enables proxy variables for the script process, then runs full bootstrap through the proxy.
+3. Prefer the network-first entrypoint: `bash scripts/network-first-setup.sh`. It installs/configures mihomo first, imports a local YAML file or subscription URL, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy.
 4. Use `bash scripts/network-first-setup.sh --no-bootstrap` when the user wants only proxy setup first.
 5. Use `bash scripts/bootstrap.sh --dry-run` only for inspection, or after proxy is known working.
 6. Validate with `bash scripts/check-machine.sh` and `bash scripts/mihomo-status.sh --strict --test-proxy`.
@@ -47,7 +47,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 
 ## Bundled Resources
 
-- `scripts/install_toolbox.sh`: materializes this skill's bundled toolbox asset or clones/updates the GitHub repo; use `--network-first` for the recommended setup order.
+- `scripts/install_toolbox.sh`: materializes this skill's bundled toolbox asset or clones/updates the GitHub repo; use `--network-first --mihomo-file PATH` for the recommended setup order.
 - `assets/toolbox/`: self-contained copy of the lightweight toolbox template.
 - `references/toolbox-scope.md`: package scope, included tools, and exclusions.
 - `references/networking.md`: mihomo import, listener checks, and proxy validation notes.

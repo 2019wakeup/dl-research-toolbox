@@ -13,23 +13,26 @@ MIHOMO_TEST_URLS="${MIHOMO_TEST_URLS:-https://github.com https://huggingface.co 
 CONFIG_FILE="$MIHOMO_CONFIG_DIR/config.yaml"
 BACKUP_DIR="$MIHOMO_CONFIG_DIR/backups"
 URL="${MIHOMO_SUBSCRIPTION_URL:-}"
+SOURCE_FILE="${MIHOMO_SUBSCRIPTION_FILE:-}"
 START=1
 CHECK=1
 REPLACE_RUNNING=0
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/mihomo-import-subscription.sh [--url URL] [--no-start] [--no-check] [--replace-running]
+Usage: bash scripts/mihomo-import-subscription.sh [--url URL | --file PATH] [--no-start] [--no-check] [--replace-running]
 
-Import a Clash/Mihomo subscription URL into ~/.config/mihomo/config.yaml,
-validate the config with mihomo, start mihomo, then check listeners and proxy
-connectivity.
+Import a Clash/Mihomo subscription URL or local YAML file into
+~/.config/mihomo/config.yaml, validate the config with mihomo, start mihomo,
+then check listeners and proxy connectivity.
 
 Recommended interactive usage:
   bash scripts/mihomo-import-subscription.sh
 
 Options:
-  --url URL           Subscription URL. If omitted, the script prompts without echo.
+  --url URL           Subscription URL. If omitted with no --file, the script prompts without echo.
+  --file PATH         Local Clash/Mihomo YAML file to import.
+  --config-file PATH  Alias for --file.
   --no-start          Only import and validate config; do not start mihomo.
   --no-check          Skip listener and proxy egress checks.
   --replace-running   Stop any existing mihomo process before starting this config.
@@ -55,6 +58,10 @@ while [ "$#" -gt 0 ]; do
       URL="${2:-}"
       shift 2
       ;;
+    --file|--config-file|--yaml)
+      SOURCE_FILE="${2:-}"
+      shift 2
+      ;;
     --no-start)
       START=0
       shift
@@ -72,7 +79,10 @@ while [ "$#" -gt 0 ]; do
       exit 0
       ;;
     *)
-      if [ -z "$URL" ]; then
+      if [ -z "$SOURCE_FILE" ] && [ -f "$1" ]; then
+        SOURCE_FILE="$1"
+        shift
+      elif [ -z "$URL" ]; then
         URL="$1"
         shift
       else
@@ -84,7 +94,12 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-if [ -z "$URL" ]; then
+if [ -n "$URL" ] && [ -n "$SOURCE_FILE" ]; then
+  echo "Use either --url or --file, not both." >&2
+  exit 2
+fi
+
+if [ -z "$URL" ] && [ -z "$SOURCE_FILE" ]; then
   printf 'Mihomo subscription URL: '
   stty -echo 2>/dev/null || true
   IFS= read -r URL
@@ -92,8 +107,13 @@ if [ -z "$URL" ]; then
   printf '\n'
 fi
 
-if [ -z "$URL" ]; then
-  echo "Subscription URL is empty." >&2
+if [ -z "$URL" ] && [ -z "$SOURCE_FILE" ]; then
+  echo "Subscription URL or YAML file is empty." >&2
+  exit 2
+fi
+
+if [ -n "$SOURCE_FILE" ] && [ ! -f "$SOURCE_FILE" ]; then
+  echo "Mihomo YAML file not found: $SOURCE_FILE" >&2
   exit 2
 fi
 
@@ -272,7 +292,9 @@ ensure_mihomo() {
   fi
 }
 
-require_cmd curl
+if [ -n "$URL" ]; then
+  require_cmd curl
+fi
 require_cmd awk
 require_cmd sed
 ensure_mihomo
@@ -294,20 +316,25 @@ else
   BACKUP_FILE=""
 fi
 
-echo "Downloading subscription..."
-curl -fsSL --retry 2 --connect-timeout 15 --max-time 90 \
-  -A 'ClashforWindows/0.20.39' \
-  "$URL" -o "$RAW_FILE"
+if [ -n "$SOURCE_FILE" ]; then
+  echo "Reading local mihomo YAML file: $SOURCE_FILE"
+  cp "$SOURCE_FILE" "$RAW_FILE"
+else
+  echo "Downloading subscription..."
+  curl -fsSL --retry 2 --connect-timeout 15 --max-time 90 \
+    -A 'ClashforWindows/0.20.39' \
+    "$URL" -o "$RAW_FILE"
+fi
 
 tr -d '\r' < "$RAW_FILE" > "$CLEAN_FILE"
 
 if [ ! -s "$CLEAN_FILE" ]; then
-  echo "Downloaded subscription is empty." >&2
+  echo "Mihomo import source is empty." >&2
   exit 1
 fi
 
 if head -c 256 "$CLEAN_FILE" | grep -Eiq '<html|<!doctype'; then
-  echo "Downloaded content looks like HTML, not a mihomo config. Check the URL or authentication." >&2
+  echo "Import source looks like HTML, not a mihomo config. Check the URL, file, or authentication." >&2
   exit 1
 fi
 
@@ -405,4 +432,4 @@ if [ "$CHECK" -eq 1 ]; then
   bash "$SCRIPT_DIR/mihomo-status.sh" --strict --test-proxy
 fi
 
-echo "Subscription import complete."
+echo "Mihomo config import complete."

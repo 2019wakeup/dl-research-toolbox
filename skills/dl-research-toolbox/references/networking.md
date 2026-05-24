@@ -5,16 +5,16 @@
 Run network setup before full bootstrap so later package downloads use the proxy:
 
 ```bash
-bash scripts/network-first-setup.sh
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`network-first-setup.sh` installs minimal network prerequisites, installs mihomo, interactively imports a subscription, validates listeners and proxy egress, sources proxy variables in its own process, and only then runs full `bootstrap.sh`.
+`network-first-setup.sh` installs minimal network prerequisites, installs mihomo, imports a local YAML file or subscription URL, validates listeners and proxy egress, sources proxy variables in its own process, installs Codex CLI, and only then runs full `bootstrap.sh`.
 
 For proxy setup only:
 
 ```bash
-bash scripts/network-first-setup.sh --no-bootstrap
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
 ```
 
 The import script expects Clash/Mihomo YAML. It rejects raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` instead of using third-party converters.
@@ -22,7 +22,7 @@ The import script expects Clash/Mihomo YAML. It rejects raw node-list subscripti
 If an existing mihomo process already owns the configured port:
 
 ```bash
-bash scripts/network-first-setup.sh --replace-running
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-running
 ```
 
 ## Checks

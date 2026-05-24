@@ -15,8 +15,9 @@ bash scripts/bootstrap.sh --dry-run
 
 # 网络优先：先安装 mihomo、导入订阅并检查代理，再运行完整 bootstrap。
 # 脚本会无回显提示输入订阅 URL，不会把 URL 写入仓库。
-bash scripts/network-first-setup.sh
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 
+# 也可以使用订阅 URL：bash scripts/network-first-setup.sh --url 'https://example.com/sub.yaml'
 # network-first 会让 bootstrap 在脚本内部走代理；如果当前交互 shell 也要走代理：
 source scripts/proxy-on.sh
 
@@ -40,28 +41,29 @@ bash scripts/mihomo-stop.sh
 新机器上先运行：
 
 ```bash
-bash scripts/network-first-setup.sh
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 ```
 
 这个入口会按顺序执行：
 
 1. 确保最小网络前置工具存在：`ca-certificates`、`curl`、`gzip`；
 2. 优先安装 `mihomo`；
-3. 交互导入 Clash/Mihomo 订阅并校验配置；
+3. 从本地 YAML 或订阅 URL 导入 Clash/Mihomo 配置并校验；
 4. 检查 `mixed-port`、controller、DNS 和代理出口；
 5. 在同一个脚本进程里 `source scripts/proxy-on.sh`；
-6. 最后运行完整 `bootstrap.sh`，使 `apt`、`uv`、Python 包下载等后续操作走代理。
+6. 先安装 Codex CLI：`@openai/codex`；
+7. 最后运行完整 `bootstrap.sh`，使 `apt`、`uv`、Python 包下载等后续操作走代理。
 
 如果已经有旧 mihomo 占用端口：
 
 ```bash
-bash scripts/network-first-setup.sh --replace-running
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-running
 ```
 
 如果只想先配置网络，不跑完整 bootstrap：
 
 ```bash
-bash scripts/network-first-setup.sh --no-bootstrap
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
 ```
 
 ## 精简科研工具层
@@ -117,11 +119,12 @@ bash scripts/mihomo-import-subscription.sh --replace-running
 
 ## 包含内容
 
-- `scripts/network-first-setup.sh`：推荐入口，先配置 mihomo 代理，再运行完整 bootstrap，避免后续下载遇到网络问题。
+- `scripts/network-first-setup.sh`：推荐入口，先配置 mihomo 代理，再安装 Codex CLI，最后运行完整 bootstrap，避免后续下载遇到网络问题。
+- `scripts/install-codex-cli.sh`：通过 npm 安装 OpenAI Codex CLI 到 `~/.local/bin/codex`。
 - `scripts/bootstrap.sh`：安装通用 Linux 科研 CLI、`gh`、`npm`、`uv`，并在 `~/.local/venvs/research-tools` 安装精简 Python 科研工具层；不安装 conda、PyTorch 或项目依赖。
 - `requirements/research-tools.txt`：精简通用 Python 工具清单，覆盖数据处理、可视化、配置、下载、GPU 监控、测试和 lint。
 - `scripts/mihomo-install.sh`：从 MetaCubeX/mihomo release 下载当前架构二进制。
-- `scripts/mihomo-import-subscription.sh`：输入 Clash/Mihomo 订阅 URL 后自动导入、校验、启动并检查可用性。
+- `scripts/mihomo-import-subscription.sh`：输入 Clash/Mihomo 订阅 URL 或传入本地 YAML 后自动导入、校验、启动并检查可用性。
 - `scripts/mihomo-start.sh` / `mihomo-stop.sh` / `mihomo-status.sh`：用户态运行 mihomo；状态脚本支持 `--strict --test-proxy`。
 - `scripts/proxy-on.sh` / `proxy-off.sh`：在当前 shell 中开关 `127.0.0.1:7890` 代理变量。
 - `scripts/network-turbo-on.sh`：在 AutoDL 机器上条件启用 `/etc/network_turbo`。

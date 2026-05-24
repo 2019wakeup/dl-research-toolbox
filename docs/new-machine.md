@@ -12,22 +12,22 @@ cd dl-research-toolbox
 ## 2. Configure network first
 
 ```bash
-bash scripts/network-first-setup.sh
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`network-first-setup.sh` installs mihomo, imports a Clash/Mihomo subscription, checks listeners and proxy egress, then runs the full bootstrap with proxy variables already active inside the script. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
+`network-first-setup.sh` installs mihomo, imports a local Clash/Mihomo YAML file or subscription URL, checks listeners and proxy egress, installs Codex CLI through npm, then runs the full bootstrap with proxy variables already active inside the script. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
 
 If an old mihomo process is already using the configured port, rerun with:
 
 ```bash
-bash scripts/network-first-setup.sh --replace-running
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-running
 ```
 
 To configure network only and skip the full bootstrap:
 
 ```bash
-bash scripts/network-first-setup.sh --no-bootstrap
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
 ```
 
 The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed Python research tools venv at `~/.local/venvs/research-tools`. It does not install conda, PyTorch, CUDA wheels, model code, datasets, or checkpoints.

@@ -12,6 +12,8 @@ INSTALL_MIHOMO=0
 IMPORT_SUBSCRIPTION=0
 NETWORK_FIRST=0
 REPLACE_RUNNING=0
+MIHOMO_FILE=""
+SKIP_CODEX_CLI=0
 
 usage() {
   cat <<'USAGE'
@@ -24,6 +26,8 @@ Options:
   --from-git           Clone or update from DL_RESEARCH_TOOLBOX_REPO instead of bundled asset.
   --repo URL            Git repository URL for --from-git.
   --network-first      Run scripts/network-first-setup.sh after install. Recommended.
+  --mihomo-file PATH   Pass local YAML file to network-first setup.
+  --no-codex-cli       Skip Codex CLI install during network-first setup.
   --bootstrap          Run scripts/bootstrap.sh after install.
   --install-mihomo     Run scripts/mihomo-install.sh after install.
   --import-subscription Run scripts/mihomo-import-subscription.sh after install.
@@ -53,6 +57,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --network-first)
       NETWORK_FIRST=1
+      shift
+      ;;
+    --mihomo-file|--file|--config-file|--yaml)
+      MIHOMO_FILE="${2:-}"
+      shift 2
+      ;;
+    --no-codex-cli)
+      SKIP_CODEX_CLI=1
       shift
       ;;
     --bootstrap)
@@ -123,6 +135,12 @@ echo "Toolbox ready: $TARGET_DIR"
 
 if [ "$NETWORK_FIRST" -eq 1 ]; then
   args=()
+  if [ -n "$MIHOMO_FILE" ]; then
+    args+=(--file "$MIHOMO_FILE")
+  fi
+  if [ "$SKIP_CODEX_CLI" -eq 1 ]; then
+    args+=(--no-codex-cli)
+  fi
   if [ "$REPLACE_RUNNING" -eq 1 ]; then
     args+=(--replace-running)
   fi
@@ -140,6 +158,9 @@ fi
 
 if [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
   args=()
+  if [ -n "$MIHOMO_FILE" ]; then
+    args+=(--file "$MIHOMO_FILE")
+  fi
   if [ "$REPLACE_RUNNING" -eq 1 ]; then
     args+=(--replace-running)
   fi

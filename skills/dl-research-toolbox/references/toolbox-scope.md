@@ -29,16 +29,16 @@ Trimmed Python tools venv at `~/.local/venvs/research-tools`:
 Network-first setup:
 
 ```bash
-bash scripts/network-first-setup.sh
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 ```
 
-This is preferred over running `bootstrap.sh` directly on fresh machines because it configures mihomo before `apt`, `uv`, Python package, GitHub, and Hugging Face downloads.
+This is preferred over running `bootstrap.sh` directly on fresh machines because it configures mihomo and installs Codex CLI before `apt`, `uv`, Python package, GitHub, and Hugging Face downloads.
 
 ## Validation commands
 
 ```bash
 bash scripts/bootstrap.sh --dry-run
-bash -n scripts/bootstrap.sh scripts/check-machine.sh scripts/mihomo-import-subscription.sh scripts/mihomo-status.sh
+bash -n scripts/bootstrap.sh scripts/check-machine.sh scripts/install-codex-cli.sh scripts/mihomo-import-subscription.sh scripts/mihomo-status.sh scripts/network-first-setup.sh
 git diff --check
 git grep -nE 'token|secret|password|passwd|cookie|Authorization|Bearer|subscription|proxy-provider' -- .
 ```

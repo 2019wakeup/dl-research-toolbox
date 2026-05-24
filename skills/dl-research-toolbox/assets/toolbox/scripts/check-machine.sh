@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 TOOLS=(
+  codex
   gh
   git
   git-lfs
