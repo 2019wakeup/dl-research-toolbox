@@ -54,14 +54,9 @@ ensure_path_now() {
   esac
 }
 
-ensure_path_persisted() {
-  local profile="$HOME/.bashrc"
-  local line
-  if [ "$CODEX_INSTALL_PREFIX" = "$HOME/.local" ]; then
-    line='export PATH="$HOME/.local/bin:$PATH"'
-  else
-    line="export PATH=\"$CODEX_INSTALL_PREFIX/bin:\$PATH\""
-  fi
+ensure_profile_line() {
+  local profile="$1"
+  local line="$2"
 
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "[dry-run] ensure $profile contains: $line"
@@ -71,12 +66,26 @@ ensure_path_persisted() {
   touch "$profile"
   if ! grep -Fqx "$line" "$profile"; then
     {
-      printf '\n# Added by dl-research-toolbox for user-local CLI tools.\n'
-      printf '%s\n' "$line"
+      printf '
+# Added by dl-research-toolbox for user-local CLI tools.
+'
+      printf '%s
+' "$line"
     } >> "$profile"
   fi
 }
 
+ensure_path_persisted() {
+  local line
+  if [ "$CODEX_INSTALL_PREFIX" = "$HOME/.local" ]; then
+    line='export PATH="$HOME/.local/bin:$PATH"'
+  else
+    line="export PATH="$CODEX_INSTALL_PREFIX/bin:\$PATH""
+  fi
+
+  ensure_profile_line "$HOME/.bashrc" "$line"
+  ensure_profile_line "$HOME/.profile" "$line"
+}
 find_codex() {
   ensure_path_now
   command -v codex 2>/dev/null || true
