@@ -1,0 +1,49 @@
+# Runtime state
+*.log
+*.pid
+logs/
+tmp/
+cache/
+.cache/
+.state/
+
+# Local secrets and machine-specific config
+.env
+*.env
+!.env.example
+network/mihomo/config.yaml
+network/mihomo/*.yaml.local
+network/mihomo/providers/
+
+# Downloaded binaries and rulesets
+bin/
+*.gz
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.xz
+*.dat
+*.db
+*.mmdb
+*.metadb
+
+# Research artifacts intentionally excluded from this generic toolbox
+datasets/
+data/
+models/
+checkpoints/
+outputs/
+runs/
+wandb/
+mlruns/
+artifacts/
+
+# Python/editor noise
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.idea/
+.vscode/

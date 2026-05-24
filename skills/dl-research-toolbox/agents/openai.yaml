@@ -1,0 +1,4 @@
+interface:
+  display_name: "DL Research Toolbox"
+  short_description: "Set up generic DL research machines"
+  default_prompt: "Use $dl-research-toolbox to set up a project-independent deep learning research machine."
