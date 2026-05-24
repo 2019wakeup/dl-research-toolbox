@@ -10,6 +10,7 @@ FROM_GIT=0
 BOOTSTRAP=0
 INSTALL_MIHOMO=0
 IMPORT_SUBSCRIPTION=0
+NETWORK_FIRST=0
 REPLACE_RUNNING=0
 
 usage() {
@@ -22,6 +23,7 @@ Options:
   --path PATH           Target directory. Default: ~/dl-research-toolbox
   --from-git           Clone or update from DL_RESEARCH_TOOLBOX_REPO instead of bundled asset.
   --repo URL            Git repository URL for --from-git.
+  --network-first      Run scripts/network-first-setup.sh after install. Recommended.
   --bootstrap          Run scripts/bootstrap.sh after install.
   --install-mihomo     Run scripts/mihomo-install.sh after install.
   --import-subscription Run scripts/mihomo-import-subscription.sh after install.
@@ -47,6 +49,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --from-git)
       FROM_GIT=1
+      shift
+      ;;
+    --network-first)
+      NETWORK_FIRST=1
       shift
       ;;
     --bootstrap)
@@ -114,6 +120,15 @@ fi
 chmod +x "$TARGET_DIR"/scripts/*.sh
 
 echo "Toolbox ready: $TARGET_DIR"
+
+if [ "$NETWORK_FIRST" -eq 1 ]; then
+  args=()
+  if [ "$REPLACE_RUNNING" -eq 1 ]; then
+    args+=(--replace-running)
+  fi
+  (cd "$TARGET_DIR" && bash scripts/network-first-setup.sh "${args[@]}")
+  exit 0
+fi
 
 if [ "$BOOTSTRAP" -eq 1 ]; then
   (cd "$TARGET_DIR" && bash scripts/bootstrap.sh)

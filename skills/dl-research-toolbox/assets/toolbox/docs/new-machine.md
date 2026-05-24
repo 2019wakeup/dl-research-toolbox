@@ -9,22 +9,36 @@ git clone <your-repo-url> dl-research-toolbox
 cd dl-research-toolbox
 ```
 
-## 2. Install base tools
+## 2. Configure network first
 
 ```bash
-bash scripts/bootstrap.sh --dry-run
-bash scripts/bootstrap.sh
+bash scripts/network-first-setup.sh
+source scripts/proxy-on.sh
+```
+
+`network-first-setup.sh` installs mihomo, imports a Clash/Mihomo subscription, checks listeners and proxy egress, then runs the full bootstrap with proxy variables already active inside the script. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
+
+If an old mihomo process is already using the configured port, rerun with:
+
+```bash
+bash scripts/network-first-setup.sh --replace-running
+```
+
+To configure network only and skip the full bootstrap:
+
+```bash
+bash scripts/network-first-setup.sh --no-bootstrap
 ```
 
 The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed Python research tools venv at `~/.local/venvs/research-tools`. It does not install conda, PyTorch, CUDA wheels, model code, datasets, or checkpoints.
 
-To skip the Python tools venv:
+To skip the Python tools venv when bootstrap runs:
 
 ```bash
-INSTALL_PYTHON_TOOLS=0 bash scripts/bootstrap.sh
+INSTALL_PYTHON_TOOLS=0 bash scripts/network-first-setup.sh
 ```
 
-## 3. Configure mihomo
+## 3. Configure mihomo manually when needed
 
 ```bash
 bash scripts/mihomo-install.sh

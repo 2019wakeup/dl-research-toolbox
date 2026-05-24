@@ -1,13 +1,20 @@
 # Networking and mihomo
 
-## Import flow
+## Network-first flow
 
-Use interactive import so subscription URLs do not enter shell history:
+Run network setup before full bootstrap so later package downloads use the proxy:
 
 ```bash
-bash scripts/mihomo-install.sh
-bash scripts/mihomo-import-subscription.sh
+bash scripts/network-first-setup.sh
 source scripts/proxy-on.sh
+```
+
+`network-first-setup.sh` installs minimal network prerequisites, installs mihomo, interactively imports a subscription, validates listeners and proxy egress, sources proxy variables in its own process, and only then runs full `bootstrap.sh`.
+
+For proxy setup only:
+
+```bash
+bash scripts/network-first-setup.sh --no-bootstrap
 ```
 
 The import script expects Clash/Mihomo YAML. It rejects raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` instead of using third-party converters.
@@ -15,7 +22,7 @@ The import script expects Clash/Mihomo YAML. It rejects raw node-list subscripti
 If an existing mihomo process already owns the configured port:
 
 ```bash
-bash scripts/mihomo-import-subscription.sh --replace-running
+bash scripts/network-first-setup.sh --replace-running
 ```
 
 ## Checks

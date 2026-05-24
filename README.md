@@ -13,17 +13,11 @@ cd dl-research-toolbox
 # 先查看会安装什么。
 bash scripts/bootstrap.sh --dry-run
 
-# 安装通用系统工具、gh、npm、uv 和精简 Python 科研工具层。非 root 用户会自动使用 sudo。
-bash scripts/bootstrap.sh
-
-# 安装 mihomo 到 ~/.local/opt/mihomo，并创建 ~/.local/bin/mihomo 链接。
-bash scripts/mihomo-install.sh
-
-# 一键导入 Clash/Mihomo 订阅 URL、校验配置、启动并检查代理。
+# 网络优先：先安装 mihomo、导入订阅并检查代理，再运行完整 bootstrap。
 # 脚本会无回显提示输入订阅 URL，不会把 URL 写入仓库。
-bash scripts/mihomo-import-subscription.sh
+bash scripts/network-first-setup.sh
 
-# 在当前 shell 中启用代理环境变量。
+# network-first 会让 bootstrap 在脚本内部走代理；如果当前交互 shell 也要走代理：
 source scripts/proxy-on.sh
 
 # 检查机器工具、GPU、mihomo 监听和代理连通性。
@@ -40,6 +34,36 @@ bash scripts/mihomo-stop.sh
 
 
 
+
+## 网络优先原则
+
+新机器上先运行：
+
+```bash
+bash scripts/network-first-setup.sh
+```
+
+这个入口会按顺序执行：
+
+1. 确保最小网络前置工具存在：`ca-certificates`、`curl`、`gzip`；
+2. 优先安装 `mihomo`；
+3. 交互导入 Clash/Mihomo 订阅并校验配置；
+4. 检查 `mixed-port`、controller、DNS 和代理出口；
+5. 在同一个脚本进程里 `source scripts/proxy-on.sh`；
+6. 最后运行完整 `bootstrap.sh`，使 `apt`、`uv`、Python 包下载等后续操作走代理。
+
+如果已经有旧 mihomo 占用端口：
+
+```bash
+bash scripts/network-first-setup.sh --replace-running
+```
+
+如果只想先配置网络，不跑完整 bootstrap：
+
+```bash
+bash scripts/network-first-setup.sh --no-bootstrap
+```
+
 ## 精简科研工具层
 
 `bootstrap.sh` 会默认安装：
@@ -51,7 +75,7 @@ bash scripts/mihomo-stop.sh
 如不想安装 Python 工具层：
 
 ```bash
-INSTALL_PYTHON_TOOLS=0 bash scripts/bootstrap.sh
+INSTALL_PYTHON_TOOLS=0 bash scripts/network-first-setup.sh
 ```
 
 需要使用这个工具层时：
@@ -93,6 +117,7 @@ bash scripts/mihomo-import-subscription.sh --replace-running
 
 ## 包含内容
 
+- `scripts/network-first-setup.sh`：推荐入口，先配置 mihomo 代理，再运行完整 bootstrap，避免后续下载遇到网络问题。
 - `scripts/bootstrap.sh`：安装通用 Linux 科研 CLI、`gh`、`npm`、`uv`，并在 `~/.local/venvs/research-tools` 安装精简 Python 科研工具层；不安装 conda、PyTorch 或项目依赖。
 - `requirements/research-tools.txt`：精简通用 Python 工具清单，覆盖数据处理、可视化、配置、下载、GPU 监控、测试和 lint。
 - `scripts/mihomo-install.sh`：从 MetaCubeX/mihomo release 下载当前架构二进制。

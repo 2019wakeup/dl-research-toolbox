@@ -1,12 +1,15 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap bootstrap-dry-run check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check
+.PHONY: bootstrap bootstrap-dry-run network-first check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check
 
 bootstrap:
 	bash scripts/bootstrap.sh
 
 bootstrap-dry-run:
 	bash scripts/bootstrap.sh --dry-run
+
+network-first:
+	bash scripts/network-first-setup.sh
 
 check:
 	bash scripts/check-machine.sh

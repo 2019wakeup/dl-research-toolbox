@@ -214,8 +214,9 @@ Bootstrap complete.
 
 Installed base tools include gh, npm, uv, and a trimmed Python research tools venv.
 
-Next:
-  bash scripts/mihomo-install.sh
-  bash scripts/mihomo-import-subscription.sh
+If mihomo was not configured before bootstrap, run:
+  bash scripts/network-first-setup.sh --no-bootstrap
+
+For the current interactive shell after mihomo is configured:
   source scripts/proxy-on.sh
 DONE

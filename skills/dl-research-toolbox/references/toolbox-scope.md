@@ -24,6 +24,16 @@ Trimmed Python tools venv at `~/.local/venvs/research-tools`:
 - datasets, model weights, checkpoints, logs, `wandb/`, `mlruns/`, artifacts
 - real proxy subscriptions, mihomo nodes, secrets, tokens, SSH keys
 
+## Setup order
+
+Network-first setup:
+
+```bash
+bash scripts/network-first-setup.sh
+```
+
+This is preferred over running `bootstrap.sh` directly on fresh machines because it configures mihomo before `apt`, `uv`, Python package, GitHub, and Hugging Face downloads.
+
 ## Validation commands
 
 ```bash
