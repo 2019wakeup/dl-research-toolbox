@@ -89,6 +89,26 @@ node_major() {
   node -p 'Number(process.versions.node.split(".")[0])' 2>/dev/null
 }
 
+repair_dpkg_state() {
+  local -n sudo_cmd_ref=$1
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] dpkg --configure -a"
+    echo "[dry-run] apt-get install -f -y"
+    return 0
+  fi
+  "${sudo_cmd_ref[@]}" dpkg --configure -a || true
+  "${sudo_cmd_ref[@]}" apt-get install -f -y || true
+}
+
+remove_debian_node_packages() {
+  local -n sudo_cmd_ref=$1
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] apt-get remove -y libnode-dev libnode72 nodejs npm"
+    return 0
+  fi
+  "${sudo_cmd_ref[@]}" apt-get remove -y libnode-dev libnode72 nodejs npm || true
+}
+
 install_modern_node() {
   if ! command -v apt-get >/dev/null 2>&1; then
     echo "Node.js is missing or too old, and apt-get is unavailable." >&2
@@ -105,6 +125,7 @@ install_modern_node() {
   fi
 
   echo "Installing Node.js ${CODEX_NODE_MAJOR}.x for Codex CLI."
+  repair_dpkg_state sudo_cmd
   run "${sudo_cmd[@]}" apt-get update
   run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends ca-certificates curl gnupg
 
@@ -119,6 +140,7 @@ install_modern_node() {
     rm -f "$setup_script"
   fi
 
+  remove_debian_node_packages sudo_cmd
   run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends nodejs
   hash -r 2>/dev/null || true
 }
