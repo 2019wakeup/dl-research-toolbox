@@ -7,6 +7,10 @@ MIHOMO_STATE_DIR="${MIHOMO_STATE_DIR:-$HOME/.local/state/mihomo}"
 MIHOMO_LOG="${MIHOMO_LOG:-$MIHOMO_STATE_DIR/mihomo.log}"
 MIHOMO_PID_FILE="${MIHOMO_PID_FILE:-$MIHOMO_STATE_DIR/mihomo.pid}"
 
+if [ -z "$MIHOMO_BIN" ] && [ -x "$HOME/.local/bin/mihomo" ]; then
+  MIHOMO_BIN="$HOME/.local/bin/mihomo"
+fi
+
 if [ -z "$MIHOMO_BIN" ]; then
   echo "mihomo not found. Run: bash scripts/mihomo-install.sh" >&2
   exit 1
