@@ -42,6 +42,9 @@ while [ "$#" -gt 0 ]; do
 done
 
 MIHOMO_BIN="${MIHOMO_BIN:-$(command -v mihomo || true)}"
+if [ -z "$MIHOMO_BIN" ] && [ -x "$HOME/.local/bin/mihomo" ]; then
+  MIHOMO_BIN="$HOME/.local/bin/mihomo"
+fi
 MIHOMO_CONFIG_DIR="${MIHOMO_CONFIG_DIR:-$HOME/.config/mihomo}"
 MIHOMO_STATE_DIR="${MIHOMO_STATE_DIR:-$HOME/.local/state/mihomo}"
 MIHOMO_LOG="${MIHOMO_LOG:-$MIHOMO_STATE_DIR/mihomo.log}"
@@ -117,11 +120,15 @@ show_tcp_listener() {
     return 0
   fi
 
-  if tcp_listening "$port"; then
+  local status=0
+  tcp_listening "$port" || status=$?
+  if [ "$status" -eq 0 ]; then
     echo "[listen] $label tcp/$port is listening"
     if command -v ss >/dev/null 2>&1; then
       ss -H -ltnp "sport = :$port" 2>/dev/null | head -n 3 | sed 's/^/  /' || true
     fi
+  elif [ "$status" -eq 2 ]; then
+    echo "[listen] $label tcp/$port cannot be checked because ss/lsof is not installed"
   else
     echo "[listen] $label tcp/$port is not listening"
     if [ "$STRICT" -eq 1 ]; then mark_fail; fi
@@ -135,11 +142,15 @@ show_udp_listener() {
     return 0
   fi
 
-  if udp_listening "$port"; then
+  local status=0
+  udp_listening "$port" || status=$?
+  if [ "$status" -eq 0 ]; then
     echo "[listen] $label udp/$port is listening"
     if command -v ss >/dev/null 2>&1; then
       ss -H -lunp "sport = :$port" 2>/dev/null | head -n 3 | sed 's/^/  /' || true
     fi
+  elif [ "$status" -eq 2 ]; then
+    echo "[listen] $label udp/$port cannot be checked because ss/lsof is not installed"
   else
     echo "[listen] $label udp/$port is not listening"
     if [ "$STRICT" -eq 1 ]; then mark_fail; fi
@@ -184,10 +195,14 @@ proxy_probe() {
     if [ "$STRICT" -eq 1 ]; then mark_fail; fi
     return 0
   fi
-  if ! tcp_listening "$port"; then
+  local listen_status=0
+  tcp_listening "$port" || listen_status=$?
+  if [ "$listen_status" -eq 1 ]; then
     echo "[proxy] mixed-port tcp/$port is not listening; skipping egress test"
     if [ "$STRICT" -eq 1 ]; then mark_fail; fi
     return 0
+  elif [ "$listen_status" -eq 2 ]; then
+    echo "[proxy] listener tools missing; probing 127.0.0.1:$port with curl"
   fi
   if ! command -v curl >/dev/null 2>&1; then
     echo "[proxy] curl not found; cannot test proxy egress"
