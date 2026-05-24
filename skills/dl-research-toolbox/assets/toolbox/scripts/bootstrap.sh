@@ -124,12 +124,18 @@ install_python_tools() {
   fi
 
   if [ "$DRY_RUN" -eq 1 ]; then
-    echo "[dry-run] uv venv $PYTHON_TOOLS_VENV"
+    echo "[dry-run] create or reuse uv venv $PYTHON_TOOLS_VENV"
     echo "[dry-run] uv pip install --python $PYTHON_TOOLS_VENV/bin/python -r $req"
     return 0
   fi
 
-  uv venv "$PYTHON_TOOLS_VENV"
+  if [ -x "$PYTHON_TOOLS_VENV/bin/python" ]; then
+    echo "Using existing Python tools venv: $PYTHON_TOOLS_VENV"
+  elif [ -e "$PYTHON_TOOLS_VENV" ]; then
+    uv venv --clear "$PYTHON_TOOLS_VENV"
+  else
+    uv venv "$PYTHON_TOOLS_VENV"
+  fi
   uv pip install --python "$PYTHON_TOOLS_VENV/bin/python" -r "$req"
 
   mkdir -p "$HOME/.local/bin"
