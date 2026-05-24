@@ -173,11 +173,12 @@ ensure_npm() {
 }
 
 ensure_npm
+ensure_path_now
 existing="$(find_codex)"
 if [ -n "$existing" ]; then
   echo "codex already installed: $existing"
   if [ "$DRY_RUN" -eq 0 ]; then
-    codex --version || true
+    "$existing" --version || true
   fi
   ensure_path_persisted
   exit 0
@@ -196,7 +197,7 @@ if [ "$DRY_RUN" -eq 0 ]; then
     exit 1
   fi
   echo "codex installed: $installed"
-  codex --version
+  "$installed" --version
 else
   echo "[dry-run] codex --version"
 fi
