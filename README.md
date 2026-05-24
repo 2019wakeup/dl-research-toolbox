@@ -13,7 +13,7 @@ cd dl-research-toolbox
 # 先查看会安装什么。
 bash scripts/bootstrap.sh --dry-run
 
-# 安装通用系统工具。非 root 用户会自动使用 sudo。
+# 安装通用系统工具、gh、npm、uv 和精简 Python 科研工具层。非 root 用户会自动使用 sudo。
 bash scripts/bootstrap.sh
 
 # 安装 mihomo 到 ~/.local/opt/mihomo，并创建 ~/.local/bin/mihomo 链接。
@@ -38,6 +38,27 @@ source scripts/proxy-off.sh
 bash scripts/mihomo-stop.sh
 ```
 
+
+
+## 精简科研工具层
+
+`bootstrap.sh` 会默认安装：
+
+- 系统/CLI：`gh`、`git`、`git-lfs`、`npm`、`uv`、`tmux`、`curl`、`wget`、`aria2`、`jq`、`rg`、`fzf`、`htop`、`rsync`、`lsof` 等；
+- Python venv：`~/.local/venvs/research-tools`；
+- Python 包：`numpy`、`pandas`、`scipy`、`scikit-learn`、`matplotlib`、`tqdm`、`rich`、`pyyaml`、`pillow`、`opencv-python-headless`、`h5py`、`einops`、`tensorboard`、`huggingface-hub`、`datasets`、`gdown`、`nvitop`、`pytest`、`ruff`、`ipykernel`。
+
+如不想安装 Python 工具层：
+
+```bash
+INSTALL_PYTHON_TOOLS=0 bash scripts/bootstrap.sh
+```
+
+需要使用这个工具层时：
+
+```bash
+source ~/.local/venvs/research-tools/bin/activate
+```
 
 ## 订阅导入
 
@@ -72,7 +93,8 @@ bash scripts/mihomo-import-subscription.sh --replace-running
 
 ## 包含内容
 
-- `scripts/bootstrap.sh`：安装通用 Linux 科研 CLI，不安装 conda、PyTorch 或任何项目依赖。
+- `scripts/bootstrap.sh`：安装通用 Linux 科研 CLI、`gh`、`npm`、`uv`，并在 `~/.local/venvs/research-tools` 安装精简 Python 科研工具层；不安装 conda、PyTorch 或项目依赖。
+- `requirements/research-tools.txt`：精简通用 Python 工具清单，覆盖数据处理、可视化、配置、下载、GPU 监控、测试和 lint。
 - `scripts/mihomo-install.sh`：从 MetaCubeX/mihomo release 下载当前架构二进制。
 - `scripts/mihomo-import-subscription.sh`：输入 Clash/Mihomo 订阅 URL 后自动导入、校验、启动并检查可用性。
 - `scripts/mihomo-start.sh` / `mihomo-stop.sh` / `mihomo-status.sh`：用户态运行 mihomo；状态脚本支持 `--strict --test-proxy`。

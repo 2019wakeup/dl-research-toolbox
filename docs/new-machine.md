@@ -9,14 +9,20 @@ git clone <your-repo-url> dl-research-toolbox
 cd dl-research-toolbox
 ```
 
-## 2. Install base CLI
+## 2. Install base tools
 
 ```bash
 bash scripts/bootstrap.sh --dry-run
 bash scripts/bootstrap.sh
 ```
 
-The bootstrap installs common Linux tools only. It does not install conda, PyTorch, CUDA wheels, model code, datasets, or checkpoints.
+The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed Python research tools venv at `~/.local/venvs/research-tools`. It does not install conda, PyTorch, CUDA wheels, model code, datasets, or checkpoints.
+
+To skip the Python tools venv:
+
+```bash
+INSTALL_PYTHON_TOOLS=0 bash scripts/bootstrap.sh
+```
 
 ## 3. Configure mihomo
 

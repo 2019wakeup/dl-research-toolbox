@@ -2,8 +2,11 @@
 set -Eeuo pipefail
 
 TOOLS=(
+  gh
   git
   git-lfs
+  npm
+  uv
   tmux
   curl
   wget
@@ -11,6 +14,8 @@ TOOLS=(
   jq
   rg
   fzf
+  ruff
+  pytest
   htop
   lsof
   rsync
@@ -18,6 +23,9 @@ TOOLS=(
   nvidia-smi
   nvcc
   nvitop
+  gdown
+  huggingface-cli
+  tensorboard
   mihomo
 )
 
@@ -30,6 +38,28 @@ for tool in "${TOOLS[@]}"; do
     printf '[miss] %-12s\n' "$tool"
   fi
 done
+
+
+echo
+echo "Python tools venv"
+echo "-----------------"
+PYTHON_TOOLS_VENV="${PYTHON_TOOLS_VENV:-$HOME/.local/venvs/research-tools}"
+if [ -x "$PYTHON_TOOLS_VENV/bin/python" ]; then
+  echo "venv: $PYTHON_TOOLS_VENV"
+  "$PYTHON_TOOLS_VENV/bin/python" - <<'PY'
+import importlib.util
+mods = [
+    "numpy", "pandas", "scipy", "sklearn", "matplotlib", "tqdm",
+    "rich", "yaml", "PIL", "cv2", "h5py", "einops", "tensorboard",
+    "huggingface_hub", "datasets", "gdown", "nvitop", "pytest", "ruff",
+    "ipykernel",
+]
+for mod in mods:
+    print(f"[{'ok' if importlib.util.find_spec(mod) else 'miss'}] {mod}")
+PY
+else
+  echo "venv missing: $PYTHON_TOOLS_VENV"
+fi
 
 echo
 echo "GPU check"

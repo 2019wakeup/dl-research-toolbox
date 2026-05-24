@@ -1,0 +1,22 @@
+# Generic, framework-agnostic Python tools for research machines.
+# Intentionally excludes PyTorch, TensorFlow, CUDA wheels, and project packages.
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+tqdm
+rich
+pyyaml
+pillow
+opencv-python-headless
+h5py
+einops
+tensorboard
+huggingface-hub
+datasets
+gdown
+nvitop
+pytest
+ruff
+ipykernel
