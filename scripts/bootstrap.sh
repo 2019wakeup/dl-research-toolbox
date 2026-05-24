@@ -182,7 +182,6 @@ PACKAGES=(
   lsof
   make
   net-tools
-  npm
   openssh-client
   pkg-config
   ripgrep
@@ -194,6 +193,10 @@ PACKAGES=(
   xz-utils
   zip
 )
+
+if ! command -v npm >/dev/null 2>&1; then
+  PACKAGES+=(npm)
+fi
 
 maybe_enable_network_turbo
 

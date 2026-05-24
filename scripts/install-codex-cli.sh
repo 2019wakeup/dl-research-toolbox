@@ -4,6 +4,8 @@ set -Eeuo pipefail
 DRY_RUN=0
 CODEX_NPM_PACKAGE="${CODEX_NPM_PACKAGE:-@openai/codex}"
 CODEX_INSTALL_PREFIX="${CODEX_INSTALL_PREFIX:-$HOME/.local}"
+CODEX_NODE_MAJOR="${CODEX_NODE_MAJOR:-22}"
+CODEX_MIN_NODE_MAJOR="${CODEX_MIN_NODE_MAJOR:-16}"
 
 usage() {
   cat <<'USAGE'
@@ -15,6 +17,8 @@ bootstrap. The default install target is user-local: ~/.local/bin/codex.
 Environment:
   CODEX_NPM_PACKAGE       default: @openai/codex
   CODEX_INSTALL_PREFIX    default: ~/.local
+  CODEX_NODE_MAJOR        default: 22, used when Node.js is missing or too old
+  CODEX_MIN_NODE_MAJOR    default: 16, minimum required for Codex CLI
 USAGE
 }
 
@@ -78,10 +82,58 @@ find_codex() {
   command -v codex 2>/dev/null || true
 }
 
+node_major() {
+  if ! command -v node >/dev/null 2>&1; then
+    return 1
+  fi
+  node -p 'Number(process.versions.node.split(".")[0])' 2>/dev/null
+}
+
+install_modern_node() {
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "Node.js is missing or too old, and apt-get is unavailable." >&2
+    exit 1
+  fi
+
+  local sudo_cmd=()
+  if [ "$(id -u)" -ne 0 ]; then
+    if ! command -v sudo >/dev/null 2>&1; then
+      echo "sudo not found and current user is not root." >&2
+      exit 1
+    fi
+    sudo_cmd=(sudo)
+  fi
+
+  echo "Installing Node.js ${CODEX_NODE_MAJOR}.x for Codex CLI."
+  run "${sudo_cmd[@]}" apt-get update
+  run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends ca-certificates curl gnupg
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] curl -fsSL https://deb.nodesource.com/setup_${CODEX_NODE_MAJOR}.x -o /tmp/nodesource_setup.sh"
+    echo "[dry-run] bash /tmp/nodesource_setup.sh"
+  else
+    local setup_script
+    setup_script="$(mktemp)"
+    curl -fsSL "https://deb.nodesource.com/setup_${CODEX_NODE_MAJOR}.x" -o "$setup_script"
+    bash "$setup_script"
+    rm -f "$setup_script"
+  fi
+
+  run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends nodejs
+  hash -r 2>/dev/null || true
+}
+
 ensure_npm() {
+  local major=""
+  major="$(node_major || true)"
+  if [ -z "$major" ] || [ "$major" -lt "$CODEX_MIN_NODE_MAJOR" ]; then
+    install_modern_node
+  fi
+
   if command -v npm >/dev/null 2>&1; then
     return 0
   fi
+
   if ! command -v apt-get >/dev/null 2>&1; then
     echo "npm not found, and apt-get is unavailable. Install npm first." >&2
     exit 1
@@ -95,11 +147,10 @@ ensure_npm() {
     fi
     sudo_cmd=(sudo)
   fi
-
-  run "${sudo_cmd[@]}" apt-get update
-  run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends ca-certificates npm
+  run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends npm
 }
 
+ensure_npm
 existing="$(find_codex)"
 if [ -n "$existing" ]; then
   echo "codex already installed: $existing"
@@ -110,7 +161,6 @@ if [ -n "$existing" ]; then
   exit 0
 fi
 
-ensure_npm
 run mkdir -p "$CODEX_INSTALL_PREFIX"
 run npm install -g --prefix "$CODEX_INSTALL_PREFIX" "$CODEX_NPM_PACKAGE"
 ensure_path_now
