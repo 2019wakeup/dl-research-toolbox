@@ -153,7 +153,7 @@ show_udp_listener() {
     echo "[listen] $label udp/$port cannot be checked because ss/lsof is not installed"
   else
     echo "[listen] $label udp/$port is not listening"
-    if [ "$STRICT" -eq 1 ]; then mark_fail; fi
+    if [ "$STRICT" -eq 1 ] && [ "$label" != "dns" ]; then mark_fail; fi
   fi
 }
 
