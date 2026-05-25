@@ -199,9 +199,10 @@ make mihomo-autostart-status
 
 仓库本身可以作为模板直接 fork，也可以通过 Codex skill 复用。`skills/dl-research-toolbox/assets/toolbox/` 是一份完整的轻量模板副本；`skills/dl-research-toolbox/scripts/install_toolbox.sh` 可以把它物化到新目录，或从 GitHub 拉取最新版本。
 
-本仓库同时打包 4 个 Codex skill：
+本仓库同时打包 5 个 Codex skill：
 
 - `dl-research-toolbox`：新机器网络优先初始化、mihomo、CLI 工具、Codex CLI、Web 控制台。
+- `dataset-download-network`：大数据集下载链路诊断、下载方式选择、镜像 manifest/hash 校验。
 - `remote-project-memory`：远程项目的唯一根记忆、任务列表和向上同步规则。
 - `research-version-isolation`：科研仓库边界、版本隔离、实验记录 contract，以及可执行 hook guard。
 - `deep-learning-research`：深度学习实验流程、小规模验证、实验档案和工程经验沉淀。

@@ -197,6 +197,7 @@ List bundled skills or install only one:
 
 ```bash
 bash scripts/install-codex-skills.sh --list
+bash scripts/install-codex-skills.sh --skill dataset-download-network
 bash scripts/install-codex-skills.sh --skill research-version-isolation
 ```
 
@@ -206,7 +207,7 @@ For a research project repository, install the executable memory/version guard:
 bash skills/research-version-isolation/scripts/install_research_hooks.sh /path/to/research-repo
 ```
 
-The guard enforces a single root memory source, upward task sync for child/domain changes, and classified experiment logs under `research/experiments/<phase>/<series>/<run_id>/`.
+Use `dataset-download-network` when a project needs reliable Hugging Face, ModelScope, OpenXLab, Kaggle, Git LFS, DVC/DataLad, rclone, or HTTP mirror downloads. The research guard enforces a single root memory source, upward task sync for child/domain changes, and classified experiment logs under `research/experiments/<phase>/<series>/<run_id>/`.
 
 ## Bootstrap
 

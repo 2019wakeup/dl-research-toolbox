@@ -1,0 +1,4 @@
+name: dataset-download-network
+display_name: Dataset Download Network
+short_description: Diagnose proxies, choose modern dataset download tools, and validate mirrors with hashes or manifests.
+default_prompt: Use $dataset-download-network to design, test, and verify a reliable large dataset download workflow for my research environment.

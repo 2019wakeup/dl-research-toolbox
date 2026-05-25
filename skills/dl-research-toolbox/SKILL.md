@@ -58,6 +58,6 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 - `references/toolbox-scope.md`: package scope, included tools, and exclusions.
 - `references/networking.md`: mihomo import, autostart, listener checks, and proxy validation notes.
 - `references/migration-engineering-notes.md`: migration failure modes and fixes to remember.
-- Repository sibling skills: `remote-project-memory`, `research-version-isolation`, and `deep-learning-research` provide project memory, version isolation, experiment contracts, and hook enforcement for actual research repositories.
+- Repository sibling skills: `dataset-download-network`, `remote-project-memory`, `research-version-isolation`, and `deep-learning-research` provide dataset download diagnostics, project memory, version isolation, experiment contracts, and hook enforcement for actual research repositories.
 
 Read the relevant reference only when the task needs those details.
