@@ -20,18 +20,19 @@ REPLACE_RUNNING=0
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/mihomo-import-subscription.sh [--url URL | --file PATH] [--no-start] [--no-check] [--replace-running]
+Usage: bash scripts/mihomo-import-subscription.sh [--file PATH | --url URL] [--no-start] [--no-check] [--replace-running]
 
-Import a Clash/Mihomo subscription URL or local YAML file into
-~/.config/mihomo/config.yaml, validate the config with mihomo, start mihomo,
-then check listeners and proxy connectivity.
+Import a local Clash/Mihomo YAML file into ~/.config/mihomo/config.yaml,
+validate the config with mihomo, start mihomo, then check listeners and proxy
+connectivity. Local YAML import is the recommended cold-start path because a
+subscription URL may be unreachable before the proxy is already running.
 
-Recommended interactive usage:
-  bash scripts/mihomo-import-subscription.sh
+Recommended usage:
+  bash scripts/mihomo-import-subscription.sh --file /path/to/mihomo.yaml
 
 Options:
-  --url URL           Subscription URL. If omitted with no --file, the script prompts without echo.
-  --file PATH         Local Clash/Mihomo YAML file to import.
+  --file PATH         Local Clash/Mihomo YAML file to import. Recommended.
+  --url URL           Subscription URL. Use only when direct network access already works.
   --config-file PATH  Alias for --file.
   --no-start          Only import and validate config; do not start mihomo.
   --no-check          Skip listener and proxy egress checks.
@@ -45,10 +46,10 @@ Environment:
   MIHOMO_TEST_URLS               URLs used by status --test-proxy
 
 Notes:
-  This script expects a Clash/Mihomo YAML subscription. If your provider gives
-  a raw ss/vmess/vless/trojan node-list subscription, use the provider's
-  Clash/Mihomo subscription URL or convert it locally first. This script does
-  not send your subscription URL to third-party converters.
+  This script expects Clash/Mihomo YAML. If your provider gives a raw
+  ss/vmess/vless/trojan node-list subscription, convert it to YAML locally on a
+  machine that already has network access. This script does not send your
+  subscription URL to third-party converters.
 USAGE
 }
 
@@ -82,11 +83,9 @@ while [ "$#" -gt 0 ]; do
       if [ -z "$SOURCE_FILE" ] && [ -f "$1" ]; then
         SOURCE_FILE="$1"
         shift
-      elif [ -z "$URL" ]; then
-        URL="$1"
-        shift
       else
         echo "Unknown argument: $1" >&2
+        echo "Pass a local YAML path with --file, or use --url explicitly when network already works." >&2
         usage >&2
         exit 2
       fi
@@ -100,15 +99,12 @@ if [ -n "$URL" ] && [ -n "$SOURCE_FILE" ]; then
 fi
 
 if [ -z "$URL" ] && [ -z "$SOURCE_FILE" ]; then
-  printf 'Mihomo subscription URL: '
-  stty -echo 2>/dev/null || true
-  IFS= read -r URL
-  stty echo 2>/dev/null || true
-  printf '\n'
+  printf 'Local Clash/Mihomo YAML file path: '
+  IFS= read -r SOURCE_FILE
 fi
 
 if [ -z "$URL" ] && [ -z "$SOURCE_FILE" ]; then
-  echo "Subscription URL or YAML file is empty." >&2
+  echo "YAML file path is empty. Use --file /path/to/mihomo.yaml, or --url only after direct network access works." >&2
   exit 2
 fi
 
@@ -320,7 +316,7 @@ if [ -n "$SOURCE_FILE" ]; then
   echo "Reading local mihomo YAML file: $SOURCE_FILE"
   cp "$SOURCE_FILE" "$RAW_FILE"
 else
-  echo "Downloading subscription..."
+  echo "Downloading subscription URL. This requires direct network access before proxy startup; prefer --file for cold-start machines."
   curl -fsSL --retry 2 --connect-timeout 15 --max-time 90 \
     -A 'ClashforWindows/0.20.39' \
     "$URL" -o "$RAW_FILE"
@@ -349,7 +345,7 @@ fi
 if ! looks_like_clash_yaml "$CLEAN_FILE"; then
   if looks_like_raw_nodes "$CLEAN_FILE"; then
     echo "The subscription is a raw node-list, not Clash/Mihomo YAML." >&2
-    echo "Use your provider's Clash/Mihomo subscription URL, or convert locally before importing." >&2
+    echo "Convert it locally to Clash/Mihomo YAML first, then import with --file." >&2
   else
     echo "The subscription is not recognized as Clash/Mihomo YAML." >&2
   fi

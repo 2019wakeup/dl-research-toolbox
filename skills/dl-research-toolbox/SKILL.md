@@ -39,11 +39,11 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 
 1. Inspect the target machine and workspace. Check existing repos, dirty worktrees, and whether `~/.config/mihomo/config.yaml` already exists.
 2. Install or update the toolbox using `scripts/install_toolbox.sh`. Use the bundled asset when GitHub credentials are unavailable; use `--from-git` when the remote repository should be the source of truth.
-3. Prefer the network-first entrypoint: `bash scripts/network-first-setup.sh`. It installs/configures mihomo first, imports a local YAML file or subscription URL, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy.
-4. Use `bash scripts/network-first-setup.sh --no-bootstrap` when the user wants only proxy setup first.
+3. Prefer the network-first entrypoint with a local YAML file: `bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml`. It installs/configures mihomo first, imports local Clash/Mihomo YAML, installs mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use `--url` only when direct access to the subscription endpoint already works.
+4. Use `bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap` when the user wants only proxy setup first.
 5. Use `bash scripts/bootstrap.sh --dry-run` only for inspection, or after proxy is known working.
 6. Validate with `bash scripts/check-machine.sh`, `bash scripts/mihomo-status.sh --strict --test-proxy`, and `bash scripts/verify-proxy-deep.sh`.
-7. For persistent proxy startup, use `bash scripts/mihomo-autostart.sh install --mode system` on normal systemd machines; use `--mode user --enable-linger` or `--mode profile` only when appropriate.
+7. Treat persistent proxy startup as the default after network-first setup. For manual repair, use `bash scripts/mihomo-autostart.sh install --mode auto --enable-linger`; use explicit `--mode system`, `--mode user --enable-linger`, or `--mode profile` only when appropriate.
 8. For script usage after installation, read `docs/script-usage.md`.
 9. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
 

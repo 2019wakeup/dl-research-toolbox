@@ -73,6 +73,10 @@ systemd_user_available() {
   command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1
 }
 
+can_install_system_service() {
+  systemd_system_available && { [ "$(id -u)" -eq 0 ] || command -v sudo >/dev/null 2>&1; }
+}
+
 system_service_name() {
   printf '%s-%s.service\n' "$SERVICE_BASENAME" "$USER_NAME"
 }
@@ -299,12 +303,16 @@ case "$ACTION" in
       user) install_user_service ;;
       profile) install_profile_hook ;;
       auto)
-        if systemd_system_available; then
+        if can_install_system_service; then
           install_system_service
         elif systemd_user_available; then
           install_user_service
         else
-          echo "systemd unavailable; falling back to profile autostart."
+          if systemd_system_available; then
+            echo "systemd system manager is available, but root/sudo access is missing; falling back to profile autostart."
+          else
+            echo "systemd unavailable; falling back to profile autostart."
+          fi
           install_profile_hook
         fi
         ;;

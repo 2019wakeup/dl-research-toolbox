@@ -9,29 +9,37 @@ IMPORT_SUBSCRIPTION=1
 INSTALL_CODEX_CLI=1
 REPLACE_RUNNING=0
 INSTALL_MINIMAL=1
+INSTALL_AUTOSTART=1
+MIHOMO_AUTOSTART_MODE="${MIHOMO_AUTOSTART_MODE:-auto}"
+MIHOMO_AUTOSTART_ENABLE_LINGER="${MIHOMO_AUTOSTART_ENABLE_LINGER:-1}"
 MIHOMO_FILE="${MIHOMO_SUBSCRIPTION_FILE:-}"
 MIHOMO_URL="${MIHOMO_SUBSCRIPTION_URL:-}"
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/network-first-setup.sh [--dry-run] [--file PATH | --url URL] [--no-bootstrap] [--no-import] [--no-codex-cli] [--replace-running] [--skip-minimal-packages]
+Usage: bash scripts/network-first-setup.sh [--dry-run] [--file PATH | --url URL] [--no-bootstrap] [--no-import] [--no-codex-cli] [--no-autostart] [--replace-running] [--skip-minimal-packages]
 
 Network-first setup. Install/configure mihomo before running the full bootstrap
 so apt, uv, Python package downloads, GitHub, and Hugging Face access can use the proxy.
 
 Options:
   --dry-run                Print planned steps. Does not install or import.
-  --file PATH             Import a local Clash/Mihomo YAML file.
-  --url URL                Import a Clash/Mihomo subscription URL.
+  --file PATH             Import a local Clash/Mihomo YAML file. Recommended for cold-start machines.
+  --url URL                Import a subscription URL. Use only when direct network access already works.
   --no-bootstrap           Stop after mihomo install/import, proxy check, and Codex CLI install.
   --no-import              Install mihomo but do not import a subscription.
   --no-codex-cli           Skip Codex CLI installation before full bootstrap.
+  --no-autostart           Do not install mihomo autostart after import. Autostart is on by default.
+  --autostart-mode MODE    auto, system, user, or profile. Default: auto.
+  --no-autostart-linger    Do not pass --enable-linger when auto/user autostart is selected.
   --replace-running        Replace any existing mihomo process during import.
   --skip-minimal-packages  Do not try to install ca-certificates/curl/gzip first.
   -h, --help               Show this help.
 
 Environment:
   USE_NETWORK_TURBO=auto|1|0  Passed through to mihomo-install/bootstrap.
+  MIHOMO_AUTOSTART_MODE       Default autostart mode: auto.
+  MIHOMO_AUTOSTART_ENABLE_LINGER=1|0  Default: 1.
 USAGE
 }
 
@@ -43,6 +51,9 @@ while [ "$#" -gt 0 ]; do
     --no-bootstrap) RUN_BOOTSTRAP=0; shift ;;
     --no-import) IMPORT_SUBSCRIPTION=0; shift ;;
     --no-codex-cli) INSTALL_CODEX_CLI=0; shift ;;
+    --no-autostart) INSTALL_AUTOSTART=0; shift ;;
+    --autostart-mode) MIHOMO_AUTOSTART_MODE="${2:-}"; shift 2 ;;
+    --no-autostart-linger) MIHOMO_AUTOSTART_ENABLE_LINGER=0; shift ;;
     --replace-running) REPLACE_RUNNING=1; shift ;;
     --skip-minimal-packages) INSTALL_MINIMAL=0; shift ;;
     -h|--help)
@@ -56,6 +67,17 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+case "$MIHOMO_AUTOSTART_MODE" in
+  auto|system|user|profile) ;;
+  *) echo "Invalid --autostart-mode: $MIHOMO_AUTOSTART_MODE" >&2; exit 2 ;;
+esac
+
+case "$MIHOMO_AUTOSTART_ENABLE_LINGER" in
+  1|true|yes|on) MIHOMO_AUTOSTART_ENABLE_LINGER=1 ;;
+  0|false|no|off) MIHOMO_AUTOSTART_ENABLE_LINGER=0 ;;
+  *) echo "Invalid MIHOMO_AUTOSTART_ENABLE_LINGER: $MIHOMO_AUTOSTART_ENABLE_LINGER" >&2; exit 2 ;;
+esac
 
 run() {
   if [ "$DRY_RUN" -eq 1 ]; then
@@ -98,7 +120,21 @@ install_minimal_packages() {
 }
 
 if [ "$DRY_RUN" -eq 1 ]; then
-  echo "[dry-run] network-first setup order: minimal packages -> mihomo install -> config import -> proxy env -> Codex CLI -> full bootstrap"
+  order="minimal packages -> mihomo install"
+  if [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
+    order="$order -> local YAML config import"
+    if [ "$INSTALL_AUTOSTART" -eq 1 ]; then
+      order="$order -> mihomo autostart"
+    fi
+    order="$order -> proxy env"
+  fi
+  if [ "$INSTALL_CODEX_CLI" -eq 1 ]; then
+    order="$order -> Codex CLI"
+  fi
+  if [ "$RUN_BOOTSTRAP" -eq 1 ]; then
+    order="$order -> full bootstrap"
+  fi
+  echo "[dry-run] network-first setup order: $order"
 fi
 
 install_minimal_packages
@@ -130,7 +166,21 @@ if [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
     (cd "$REPO_ROOT" && bash scripts/mihomo-import-subscription.sh "${import_args[@]}")
   fi
 else
-  echo "Skipping subscription import. Run scripts/mihomo-import-subscription.sh before bootstrap if network access is unreliable."
+  echo "Skipping subscription import. Run scripts/mihomo-import-subscription.sh --file /path/to/mihomo.yaml before bootstrap if network access is unreliable."
+fi
+
+if [ "$IMPORT_SUBSCRIPTION" -eq 1 ] && [ "$INSTALL_AUTOSTART" -eq 1 ]; then
+  autostart_args=(install --mode "$MIHOMO_AUTOSTART_MODE")
+  if [ "$MIHOMO_AUTOSTART_ENABLE_LINGER" -eq 1 ]; then
+    autostart_args+=(--enable-linger)
+  fi
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] bash scripts/mihomo-autostart.sh ${autostart_args[*]}"
+  else
+    (cd "$REPO_ROOT" && bash scripts/mihomo-autostart.sh "${autostart_args[@]}")
+  fi
+elif [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
+  echo "Skipping mihomo autostart. Enable later with: bash scripts/mihomo-autostart.sh install --mode auto --enable-linger"
 fi
 
 if [ "$IMPORT_SUBSCRIPTION" -eq 1 ]; then
@@ -167,4 +217,5 @@ For this interactive shell, run:
 
 Validate any time with:
   bash scripts/mihomo-status.sh --strict --test-proxy
+  bash scripts/mihomo-autostart.sh status
 DONE

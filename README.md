@@ -13,11 +13,11 @@ cd dl-research-toolbox
 # 先查看会安装什么。
 bash scripts/bootstrap.sh --dry-run
 
-# 网络优先：先安装 mihomo、导入订阅并检查代理，再运行完整 bootstrap。
-# 脚本会无回显提示输入订阅 URL，不会把 URL 写入仓库。
+# 网络优先：先安装 mihomo、导入本地 YAML、检查代理、配置自启，再运行完整 bootstrap。
+# 冷启动机器推荐直接传 YAML 文件；订阅 URL 可能在代理启动前不可访问。
 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 
-# 也可以使用订阅 URL：bash scripts/network-first-setup.sh --url 'https://example.com/sub.yaml'
+# network-first 默认会配置 mihomo 自启；如需关闭：加 --no-autostart。
 # network-first 会让 bootstrap 在脚本内部走代理；如果当前交互 shell 也要走代理：
 source scripts/proxy-on.sh
 
@@ -37,12 +37,12 @@ source scripts/proxy-on.sh
 配置 mihomo 自启：
 
 ```bash
-# 真正开机自启，适合正常 systemd 机器。
-bash scripts/mihomo-autostart.sh install --mode system
-
-# 或使用自动选择；无 systemd 时会退到 profile hook。
+# network-first 已默认执行自启配置；手动安装或重装自启可运行：
 bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
 bash scripts/mihomo-autostart.sh status
+
+# 真正开机自启，适合正常 systemd 机器。
+bash scripts/mihomo-autostart.sh install --mode system
 ```
 
 关闭代理环境变量和 mihomo：
@@ -67,11 +67,14 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 
 1. 确保最小网络前置工具存在：`ca-certificates`、`curl`、`gzip`；
 2. 优先安装 `mihomo`；
-3. 从本地 YAML 或订阅 URL 导入 Clash/Mihomo 配置并校验；
+3. 从本地 YAML 导入 Clash/Mihomo 配置并校验；
 4. 检查 `mixed-port`、controller、DNS 和代理出口；
-5. 在同一个脚本进程里 `source scripts/proxy-on.sh`；
-6. 先安装 Codex CLI：`@openai/codex`；
-7. 最后运行完整 `bootstrap.sh`，使 `apt`、`uv`、Python 包下载等后续操作走代理。
+5. 默认配置 mihomo 自启；
+6. 在同一个脚本进程里 `source scripts/proxy-on.sh`；
+7. 先安装 Codex CLI：`@openai/codex`；
+8. 最后运行完整 `bootstrap.sh`，使 `apt`、`uv`、Python 包下载等后续操作走代理。
+
+`--url` 仍然保留，但只建议在机器已经能直接访问订阅地址时使用。冷启动迁移时应先把 Clash/Mihomo YAML 文件传到新机器，再用 `--file` 导入。
 
 如果已经有旧 mihomo 占用端口：
 
@@ -96,7 +99,7 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
 如不想安装 Python 工具层：
 
 ```bash
-INSTALL_PYTHON_TOOLS=0 bash scripts/network-first-setup.sh
+INSTALL_PYTHON_TOOLS=0 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 ```
 
 需要使用这个工具层时：
@@ -107,21 +110,23 @@ source ~/.local/venvs/research-tools/bin/activate
 
 ## 订阅导入
 
-推荐交互导入，订阅 URL 不会回显：
+推荐传入本地 Clash/Mihomo YAML 文件。这样不依赖新机器在代理启动前访问订阅 URL：
+
+```bash
+bash scripts/mihomo-import-subscription.sh --file /path/to/mihomo.yaml
+```
+
+无参数运行时也会提示输入本地 YAML 文件路径：
 
 ```bash
 bash scripts/mihomo-import-subscription.sh
 ```
 
-也可以显式传入 URL，但这可能进入 shell history：
-
-```bash
-bash scripts/mihomo-import-subscription.sh --url 'https://example.com/sub.yaml'
-```
+`--url` 只建议在机器已经能直接访问订阅地址时使用；冷启动机器不要依赖 URL 导入。
 
 脚本会：
 
-- 下载订阅内容；
+- 读取本地 YAML，或在显式 `--url` 时下载订阅内容；
 - 识别 Clash/Mihomo YAML；
 - 给缺少运行字段的订阅补上 `mixed-port`、`external-controller`、DNS、默认规则组和规则；
 - 备份旧的 `~/.config/mihomo/config.yaml`；
@@ -131,19 +136,19 @@ bash scripts/mihomo-import-subscription.sh --url 'https://example.com/sub.yaml'
 如果当前机器已经有旧 mihomo 占用 `7890` 端口，使用：
 
 ```bash
-bash scripts/mihomo-import-subscription.sh --replace-running
+bash scripts/mihomo-import-subscription.sh --file /path/to/mihomo.yaml --replace-running
 ```
 
 如果订阅是 `ss://`、`vmess://`、`vless://`、`trojan://` 这类原始节点列表，脚本会拒绝导入。请使用服务商提供的 Clash/Mihomo 订阅，或先在本地转换为 YAML。
 
 ## 包含内容
 
-- `scripts/network-first-setup.sh`：推荐入口，先配置 mihomo 代理，再安装 Codex CLI，最后运行完整 bootstrap，避免后续下载遇到网络问题。
+- `scripts/network-first-setup.sh`：推荐入口，先配置 mihomo 代理和默认自启，再安装 Codex CLI，最后运行完整 bootstrap，避免后续下载遇到网络问题。
 - `scripts/install-codex-cli.sh`：通过 npm 安装 OpenAI Codex CLI 到 `~/.local/bin/codex`。
 - `scripts/bootstrap.sh`：安装通用 Linux 科研 CLI、`gh`、`npm`、`uv`，并在 `~/.local/venvs/research-tools` 安装精简 Python 科研工具层；不安装 conda、PyTorch 或项目依赖。
 - `requirements/research-tools.txt`：精简通用 Python 工具清单，覆盖数据处理、可视化、配置、下载、GPU 监控、测试和 lint。
 - `scripts/mihomo-install.sh`：从 MetaCubeX/mihomo release 下载当前架构二进制。
-- `scripts/mihomo-import-subscription.sh`：输入 Clash/Mihomo 订阅 URL 或传入本地 YAML 后自动导入、校验、启动并检查可用性。
+- `scripts/mihomo-import-subscription.sh`：优先传入本地 Clash/Mihomo YAML，自动导入、校验、启动并检查可用性；URL 导入只作为显式可选路径。
 - `scripts/mihomo-start.sh` / `mihomo-stop.sh` / `mihomo-status.sh`：用户态运行 mihomo；状态脚本支持 `--strict --test-proxy`。
 - `scripts/mihomo-autostart.sh`：安装 systemd system/user service 或 profile fallback，实现 mihomo 自动启动。
 - `scripts/verify-proxy-deep.sh`：深度验证代理是否覆盖 curl、git、npm、Codex CLI、uv 和 Python 科研工具层。

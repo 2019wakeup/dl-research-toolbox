@@ -5,6 +5,7 @@ This document records reusable engineering lessons from migrating the toolbox to
 ## Network and proxy
 
 - Configure mihomo before full bootstrap. Later package operations should inherit `http_proxy`, `https_proxy`, and `all_proxy` from `scripts/proxy-on.sh`.
+- Prefer local Clash/Mihomo YAML import on cold-start machines. Subscription URLs can be blocked before the proxy exists, so the migration path should transfer a YAML file to the new host and import it with `--file`.
 - Treat HTTP/HTTPS proxy egress as the critical path for research setup. A DNS UDP listener can be useful, but it should not block setup when `mixed-port`, controller, and proxy egress pass.
 - `mihomo-status.sh --strict --test-proxy` should work even before `ss` or `lsof` are installed. When listener enumeration tools are missing, use controller and curl proxy probes as the meaningful checks.
 - Use `scripts/verify-proxy-deep.sh` after setup to check GitHub, raw GitHub content, Hugging Face API, PyPI, npm registry, Git over HTTPS, Codex CLI, uv, and Python research-tool imports.
@@ -24,6 +25,7 @@ This document records reusable engineering lessons from migrating the toolbox to
 
 ## Autostart
 
+- `scripts/network-first-setup.sh` installs mihomo autostart by default after a successful config import; use `--no-autostart` only for machines that should not persist proxy startup.
 - `scripts/mihomo-start.sh` is the immediate start command.
 - `scripts/mihomo-autostart.sh install --mode system` is true boot autostart on normal systemd machines.
 - `scripts/mihomo-autostart.sh install --mode user --enable-linger` is appropriate when a systemd user manager is available.

@@ -14,6 +14,8 @@ NETWORK_FIRST=0
 REPLACE_RUNNING=0
 MIHOMO_FILE=""
 SKIP_CODEX_CLI=0
+SKIP_AUTOSTART=0
+MIHOMO_AUTOSTART_MODE=""
 
 usage() {
   cat <<'USAGE'
@@ -28,6 +30,8 @@ Options:
   --network-first      Run scripts/network-first-setup.sh after install. Recommended.
   --mihomo-file PATH   Pass local YAML file to network-first setup.
   --no-codex-cli       Skip Codex CLI install during network-first setup.
+  --no-autostart       Skip default mihomo autostart during network-first setup.
+  --autostart-mode MODE Pass auto, system, user, or profile to network-first setup.
   --bootstrap          Run scripts/bootstrap.sh after install.
   --install-mihomo     Run scripts/mihomo-install.sh after install.
   --import-subscription Run scripts/mihomo-import-subscription.sh after install.
@@ -66,6 +70,14 @@ while [ "$#" -gt 0 ]; do
     --no-codex-cli)
       SKIP_CODEX_CLI=1
       shift
+      ;;
+    --no-autostart)
+      SKIP_AUTOSTART=1
+      shift
+      ;;
+    --autostart-mode)
+      MIHOMO_AUTOSTART_MODE="${2:-}"
+      shift 2
       ;;
     --bootstrap)
       BOOTSTRAP=1
@@ -140,6 +152,12 @@ if [ "$NETWORK_FIRST" -eq 1 ]; then
   fi
   if [ "$SKIP_CODEX_CLI" -eq 1 ]; then
     args+=(--no-codex-cli)
+  fi
+  if [ "$SKIP_AUTOSTART" -eq 1 ]; then
+    args+=(--no-autostart)
+  fi
+  if [ -n "$MIHOMO_AUTOSTART_MODE" ]; then
+    args+=(--autostart-mode "$MIHOMO_AUTOSTART_MODE")
   fi
   if [ "$REPLACE_RUNNING" -eq 1 ]; then
     args+=(--replace-running)

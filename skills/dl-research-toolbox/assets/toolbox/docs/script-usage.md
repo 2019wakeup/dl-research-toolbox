@@ -4,7 +4,7 @@ This guide covers the scripts you normally use after installing the toolbox on a
 
 ## Network-first setup
 
-Use this on a fresh machine. It installs mihomo first, imports your local YAML or subscription, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy.
+Use this on a fresh machine. It installs mihomo first, imports your local YAML file, configures mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use a local YAML file for cold-start migration because a subscription URL may be blocked before the proxy is running.
 
 ```bash
 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
@@ -19,7 +19,10 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-runnin
 # Configure proxy and Codex CLI only; skip full bootstrap.
 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
 
-# Use a subscription URL instead of a local YAML file.
+# Disable persistent startup only when this machine should not auto-start the proxy.
+bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-autostart
+
+# URL import is explicit and should only be used after direct network access works.
 bash scripts/network-first-setup.sh --url 'https://example.com/sub.yaml'
 ```
 
@@ -47,23 +50,36 @@ source scripts/proxy-on.sh
 
 ## mihomo config import
 
-Import a local Clash/Mihomo YAML file:
+Import a local Clash/Mihomo YAML file. This is the recommended path for a new machine before the proxy is available:
 
 ```bash
 bash scripts/mihomo-import-subscription.sh --file /path/to/mihomo.yaml --replace-running
 ```
 
-Interactive URL import is also supported; the URL is not echoed:
+Interactive import prompts for a local YAML path:
 
 ```bash
 bash scripts/mihomo-import-subscription.sh
+```
+
+URL import remains available only when direct network access already works:
+
+```bash
+bash scripts/mihomo-import-subscription.sh --url 'https://example.com/sub.yaml'
 ```
 
 The real generated config lives in `~/.config/mihomo/config.yaml`. Do not copy that file into this repository.
 
 ## Autostart
 
-Immediate start is handled by `mihomo-start.sh`. Persistent startup is handled by `mihomo-autostart.sh`.
+Immediate start is handled by `mihomo-start.sh`. Persistent startup is handled by `mihomo-autostart.sh`. `network-first-setup.sh` installs persistent startup by default after a successful YAML import.
+
+Default automatic selection:
+
+```bash
+bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
+bash scripts/mihomo-autostart.sh status
+```
 
 Preferred true boot autostart on a normal systemd machine:
 

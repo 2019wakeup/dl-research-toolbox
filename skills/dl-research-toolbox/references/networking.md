@@ -9,7 +9,9 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`network-first-setup.sh` installs minimal network prerequisites, installs mihomo, imports a local YAML file or subscription URL, validates listeners and proxy egress, sources proxy variables in its own process, installs Codex CLI, and only then runs full `bootstrap.sh`.
+`network-first-setup.sh` installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI, and only then runs full `bootstrap.sh`. Use `--url` only when direct access to the subscription endpoint already works.
+
+For cold-start migration, transfer a YAML file to the new machine and pass it with `--file`. Do not depend on the new machine downloading a subscription URL before the proxy exists.
 
 For proxy setup only:
 
@@ -17,7 +19,7 @@ For proxy setup only:
 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
 ```
 
-The import script expects Clash/Mihomo YAML. It rejects raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` instead of using third-party converters.
+The import script expects Clash/Mihomo YAML. It prompts for a local YAML path when no source is provided. It rejects raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` instead of using third-party converters.
 
 If an existing mihomo process already owns the configured port:
 
@@ -50,11 +52,11 @@ bash scripts/mihomo-start.sh
 source scripts/proxy-on.sh
 ```
 
-Persistent startup:
+Persistent startup is installed by default by `network-first-setup.sh` after a successful import. For manual setup or repair:
 
 ```bash
-bash scripts/mihomo-autostart.sh install --mode system
+bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
 bash scripts/mihomo-autostart.sh status
 ```
 
-Use system mode for true boot autostart on normal systemd machines. Use `--mode user --enable-linger` for systemd user service, and profile fallback only in containers or SSH images where systemd is unavailable.
+Use `--mode system` for true boot autostart on normal systemd machines. Use `--mode user --enable-linger` for systemd user service, and profile fallback only in containers or SSH images where systemd is unavailable.
