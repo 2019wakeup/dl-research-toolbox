@@ -44,7 +44,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 5. Use `bash scripts/bootstrap.sh --dry-run` only for inspection, or after proxy is known working.
 6. Validate with `bash scripts/doctor.sh`; use `bash scripts/doctor.sh --quick` for proxy-only validation.
 7. Treat persistent proxy startup as the default after network-first setup. For manual repair, use `bash scripts/mihomo-autostart.sh install --mode auto --enable-linger`; use explicit `--mode system`, `--mode user --enable-linger`, or `--mode profile` only when appropriate.
-8. For SSH-forwarded monitoring/control, use `bash scripts/web-ui.sh --port 8765` and forward with `ssh -N -L 8765:127.0.0.1:8765 user@server`.
+8. For SSH-forwarded monitoring/control, prefer local-side `bash scripts/web-tunnel.sh`; its first run asks for the SSH target and saves a local profile. Use `bash scripts/web-tunnel.sh --target user@server --ssh-port PORT --remote-dir '~/dl-research-toolbox' --save-profile` for non-interactive setup, and remote-side `bash scripts/web-ui.sh --port 8765` only as the manual fallback.
 9. For script usage after installation, read `docs/script-usage.md`.
 10. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
 

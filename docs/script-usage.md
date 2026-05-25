@@ -45,20 +45,36 @@ bash scripts/network-first-setup.sh --url 'https://example.com/sub.yaml'
 
 ## Web UI over SSH forwarding
 
-Start the local-only control panel on the server:
+Recommended local-side helper. Run this from a local copy of the repository:
+
+```bash
+bash scripts/web-tunnel.sh
+```
+
+On the first run, the helper asks for the SSH target, SSH port, and remote repository directory, then saves them to `~/.config/dl-research-toolbox/web-tunnel.env`. Later runs use the same command and do not need the SSH target again.
+
+For non-interactive setup, save the profile explicitly:
+
+```bash
+bash scripts/web-tunnel.sh --target user@server --ssh-port 22 --remote-dir '~/dl-research-toolbox' --save-profile
+```
+
+The helper opens the SSH tunnel and starts the remote Web UI in one command. Open the tokenized local URL printed by the remote command.
+
+Manual fallback on the server:
 
 ```bash
 cd ~/dl-research-toolbox
 bash scripts/web-ui.sh --port 8765
 ```
 
-Forward the port from your local machine:
+Manual tunnel from your local machine:
 
 ```bash
 ssh -N -L 8765:127.0.0.1:8765 user@server
 ```
 
-Open the tokenized URL printed by `web-ui.sh`. The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and inspect autostart status. It binds to `127.0.0.1` by default and does not require HTTP tunneling.
+The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and inspect autostart status. It binds to `127.0.0.1` by default and does not require HTTP tunneling.
 
 ## Proxy session commands
 
@@ -210,6 +226,7 @@ This opens a shell window, GPU monitor window, and log window. It does not assum
 ```bash
 make setup
 make doctor
+make web-tunnel
 make web
 make network-first
 make check

@@ -94,16 +94,30 @@ Use `--no-autostart` with `network-first-setup.sh` only when the machine should 
 
 ## 7. Optional Web UI over SSH forwarding
 
-On servers without HTTP tunneling, keep the UI local to the server and access it through SSH forwarding.
+For the smoothest workflow, keep a local copy of the toolbox repository and run:
 
-Server:
+```bash
+bash scripts/web-tunnel.sh
+```
+
+On the first run, the helper asks for the SSH target, SSH port, and remote repository directory, then saves them locally. Later runs are the same one command.
+
+For non-interactive setup, save the profile explicitly:
+
+```bash
+bash scripts/web-tunnel.sh --target user@server --ssh-port 22 --remote-dir '~/dl-research-toolbox' --save-profile
+```
+
+This opens the SSH tunnel and starts the remote Web UI in one command.
+
+Manual fallback on the server:
 
 ```bash
 cd ~/dl-research-toolbox
 bash scripts/web-ui.sh --port 8765
 ```
 
-Local machine:
+Manual tunnel from the local machine:
 
 ```bash
 ssh -N -L 8765:127.0.0.1:8765 user@server

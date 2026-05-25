@@ -15,6 +15,9 @@ Usage: bash scripts/web-ui.sh [options]
 Start a local-only web control panel for monitoring and controlling toolbox
 services. Access it with SSH port forwarding; no HTTP tunnel is required.
 
+For the smoother local-side helper, run scripts/web-tunnel.sh from a local copy
+of this repository. The first run saves the SSH target; later runs reuse it.
+
 Server:
   cd ~/dl-research-toolbox
   bash scripts/web-ui.sh --port 8765

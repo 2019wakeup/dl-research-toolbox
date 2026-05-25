@@ -63,7 +63,19 @@ Use `--mode system` for true boot autostart on normal systemd machines. Use `--m
 
 ## Web UI through SSH port forwarding
 
-Use the local-only Web UI when HTTP tunneling is unavailable or undesirable:
+Preferred local-side helper, run from a local copy of the repository:
+
+```bash
+bash scripts/web-tunnel.sh
+```
+
+The first run asks for the SSH target and saves a local profile. Later runs open the SSH tunnel and start the remote Web UI with the same command. For non-interactive setup, use:
+
+```bash
+bash scripts/web-tunnel.sh --target user@server --ssh-port 22 --remote-dir '~/dl-research-toolbox' --save-profile
+```
+
+Manual fallback on the remote server:
 
 ```bash
 bash scripts/web-ui.sh --port 8765

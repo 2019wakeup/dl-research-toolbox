@@ -38,7 +38,7 @@ This is preferred over running `bootstrap.sh` directly on fresh machines because
 
 ```bash
 bash scripts/bootstrap.sh --dry-run
-bash -n install.sh scripts/bootstrap.sh scripts/check-machine.sh scripts/doctor.sh scripts/install-codex-cli.sh scripts/mihomo-autostart.sh scripts/mihomo-import-subscription.sh scripts/mihomo-status.sh scripts/network-first-setup.sh scripts/web-ui.sh scripts/verify-proxy-deep.sh
+bash -n install.sh scripts/bootstrap.sh scripts/check-machine.sh scripts/doctor.sh scripts/install-codex-cli.sh scripts/mihomo-autostart.sh scripts/mihomo-import-subscription.sh scripts/mihomo-status.sh scripts/network-first-setup.sh scripts/web-tunnel.sh scripts/web-ui.sh scripts/verify-proxy-deep.sh
 git diff --check
 git grep -nE 'token|secret|password|passwd|cookie|Authorization|Bearer|subscription|proxy-provider' -- .
 ```

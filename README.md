@@ -106,7 +106,23 @@ source ~/.local/venvs/research-tools/bin/activate
 
 有些服务器不支持 HTTP 内网穿透，或者不适合把控制面板暴露到公网。本仓库提供一个本地 Web 控制台，默认只监听服务器 `127.0.0.1`，通过 SSH 端口转发访问。
 
-服务器上启动：
+推荐方式是在本地机器也保留一份这个仓库，然后直接运行：
+
+```bash
+bash scripts/web-tunnel.sh
+```
+
+第一次运行时脚本会询问 SSH 目标、端口和远端仓库目录，并保存到本机 `~/.config/dl-research-toolbox/web-tunnel.env`。之后仍然是同一条命令，不需要再查 `user@server` 或端口。
+
+如果要写进自动化脚本，也可以用非交互形式保存 profile：
+
+```bash
+bash scripts/web-tunnel.sh --target user@server --ssh-port 22 --remote-dir '~/dl-research-toolbox' --save-profile
+```
+
+这个 helper 会同时建立 SSH tunnel，并在远端启动 `scripts/web-ui.sh`。远端脚本会打印带 token 的本地访问地址。
+
+如果只想用底层手动方式，也可以分两步。服务器上启动：
 
 ```bash
 cd ~/dl-research-toolbox
@@ -119,7 +135,7 @@ bash scripts/web-ui.sh --port 8765
 ssh -N -L 8765:127.0.0.1:8765 user@server
 ```
 
-然后打开启动脚本打印出来的 `http://127.0.0.1:8765/?token=...`。控制台支持：
+控制台支持：
 
 - 查看 mihomo 配置、PID 和运行状态；
 - 启动、停止、重启 mihomo；
@@ -138,7 +154,10 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml
 # 一键体检。
 bash scripts/doctor.sh
 
-# 启动本地 Web 控制台，通过 SSH -L 访问。
+# 本地一条命令启动 SSH tunnel 和远端 Web 控制台。
+bash scripts/web-tunnel.sh
+
+# 远端手动启动底层 Web 控制台。
 bash scripts/web-ui.sh --port 8765
 
 # 当前 shell 使用本地代理。
@@ -164,6 +183,7 @@ Make 快捷入口：
 ```bash
 make setup
 make doctor
+make web-tunnel
 make web
 make mihomo-check
 make mihomo-autostart-status
@@ -182,7 +202,8 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 
 - `install.sh`：新机器配置主入口。
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境）。
-- `scripts/web-ui.sh`：本地 Web 控制台入口，通过 SSH 端口转发访问。
+- `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
+- `scripts/web-ui.sh`：远端本地 Web 控制台入口，通过 SSH 端口转发访问。
 
 底层脚本仍然保留，方便排查和局部重跑。
 
@@ -216,7 +237,8 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |-- scripts/
 |   |-- network-first-setup.sh         # 网络优先底层入口
 |   |-- doctor.sh                      # 统一体检入口（默认自动启用本地代理环境）
-|   |-- web-ui.sh                      # 本地 Web 控制台启动器
+|   |-- web-tunnel.sh                  # 本地侧 SSH tunnel helper
+|   |-- web-ui.sh                      # 远端本地 Web 控制台启动器
 |   |-- toolbox-web.py                 # Web 控制台后端（Python 标准库）
 |   |-- bootstrap.sh                   # 通用 CLI、gh、npm、uv、Python 工具层安装
 |   |-- install-codex-cli.sh           # Codex CLI 安装/修复

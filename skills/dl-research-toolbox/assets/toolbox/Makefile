@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: setup doctor web bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-autostart mihomo-autostart-status
+.PHONY: setup doctor web web-tunnel bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-autostart mihomo-autostart-status
 
 setup:
 	bash install.sh
@@ -10,6 +10,9 @@ doctor:
 
 web:
 	bash scripts/web-ui.sh
+
+web-tunnel:
+	bash scripts/web-tunnel.sh
 
 bootstrap:
 	bash scripts/bootstrap.sh

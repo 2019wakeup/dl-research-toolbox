@@ -219,10 +219,10 @@ def page_html() -> str:
       </section>
       <section class="panel span-4">
         <h2>连接方式</h2>
-        <p>服务器上启动：</p>
+        <p>本地机器推荐：</p>
         <pre><code>cd ~/dl-research-toolbox
-bash scripts/web-ui.sh --port {port}</code></pre>
-        <p>本地机器转发：</p>
+bash scripts/web-tunnel.sh</code></pre>
+        <p>底层手动方式：</p>
         <pre><code>ssh -N -L {port}:127.0.0.1:{port} user@server</code></pre>
       </section>
       <section class="panel span-12">
