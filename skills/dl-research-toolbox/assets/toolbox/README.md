@@ -4,6 +4,26 @@
 
 本仓库只包含项目无关的工具配置，不包含具体项目代码、数据集、模型权重、conda 环境、PyTorch/CUDA 安装包或任何代理节点凭据。
 
+## 准备 mihomo YAML 配置
+
+新机器第一次配置网络时，优先准备一个本地 Clash/Mihomo YAML 文件，再传到新机器上。不要让新机器在代理启动前通过订阅 URL 下载配置，因为订阅地址本身可能无法直连。
+
+这个 YAML 可以来自服务商提供的 Clash/Mihomo 配置导出，或在一台已有网络的机器上预先下载/转换得到。它应该是完整的 Clash/Mihomo YAML，不是 `ss://`、`vmess://`、`vless://`、`trojan://` 这类原始节点列表。
+
+示例传输：
+
+```bash
+scp ./mihomo.yaml root@your-new-machine:/root/mihomo.yaml
+```
+
+之后在新机器上使用：
+
+```bash
+bash scripts/network-first-setup.sh --file /root/mihomo.yaml
+```
+
+真实 YAML 文件包含代理节点或订阅转换结果，只放在机器本地使用，不要提交到这个仓库。
+
 ## 快速开始
 
 ```bash
@@ -51,8 +71,6 @@ bash scripts/mihomo-autostart.sh install --mode system
 source scripts/proxy-off.sh
 bash scripts/mihomo-stop.sh
 ```
-
-
 
 
 ## 网络优先原则
@@ -165,10 +183,6 @@ bash scripts/mihomo-import-subscription.sh --file /path/to/mihomo.yaml --replace
 - 不提交项目目录、数据集、模型权重、checkpoint、日志和实验产物。
 - 不复制 AutoDL 内置 `/etc/network_turbo` 内容，只在存在时提供条件调用入口。
 
-## 当前源机器盘点
-
-源机器上发现的可迁移思路记录在 [docs/tool-inventory.md](docs/tool-inventory.md)。迁移中的工程问题和处理规则记录在 [docs/migration-engineering-notes.md](docs/migration-engineering-notes.md)。安装后一系列脚本使用教程见 [docs/script-usage.md](docs/script-usage.md)。该文件只记录工具类别和路径形态，不记录任何敏感代理值。
-
 ## 安全检查
 
 推送前建议运行：
@@ -179,3 +193,42 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 ```
 
 真实 mihomo 配置和 `.env` 文件已在 `.gitignore` 中排除。更多说明见 [docs/security.md](docs/security.md)。
+
+## 文件树简介
+
+```text
+.
+|-- README.md                         # 快速开始、网络优先原则、包含/排除范围
+|-- Makefile                          # 常用脚本快捷入口
+|-- requirements/
+|   `-- research-tools.txt            # 精简通用 Python 科研工具层
+|-- scripts/
+|   |-- network-first-setup.sh        # 新机器首选入口：YAML 导入、代理、自启、Codex CLI、bootstrap
+|   |-- bootstrap.sh                  # 通用 CLI、gh、npm、uv、Python 工具层安装
+|   |-- install-codex-cli.sh          # Codex CLI 安装/修复
+|   |-- mihomo-install.sh             # mihomo 二进制安装
+|   |-- mihomo-import-subscription.sh # 本地 Clash/Mihomo YAML 导入、校验、启动、检查
+|   |-- mihomo-start.sh               # 用户态启动 mihomo
+|   |-- mihomo-stop.sh                # 停止 toolbox 启动的 mihomo
+|   |-- mihomo-status.sh              # 监听、controller、代理出口检查
+|   |-- mihomo-autostart.sh           # system/user/profile 自启配置
+|   |-- verify-proxy-deep.sh          # GitHub、HF、PyPI、npm、git、uv、Codex 深度检查
+|   |-- proxy-on.sh / proxy-off.sh    # 当前 shell 代理环境变量开关
+|   |-- network-turbo-on.sh           # 条件启用 AutoDL /etc/network_turbo
+|   `-- tmux-research.sh              # 通用远程实验 tmux 会话
+|-- network/
+|   `-- mihomo/
+|       |-- config.yaml.example       # 空示例，不包含真实节点
+|       `-- mihomo.env.example        # mihomo 环境变量示例
+|-- docs/
+|   |-- new-machine.md                # 新机器安装检查表
+|   |-- script-usage.md               # 安装后脚本使用教程
+|   |-- migration-engineering-notes.md# 迁移问题和处理规则
+|   `-- security.md                   # 敏感信息排除和推送前检查
+`-- skills/
+    `-- dl-research-toolbox/
+        |-- SKILL.md                  # Codex skill 工作流说明
+        |-- scripts/install_toolbox.sh # 从 skill 安装/更新 toolbox
+        |-- references/               # skill 运行时参考文档
+        `-- assets/toolbox/           # skill 内置的仓库模板副本
+```
