@@ -11,6 +11,11 @@ SKIP_CODEX_CLI=0
 SKIP_PYTHON_TOOLS=0
 NETWORK_ARGS=()
 
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 usage() {
   cat <<'USAGE'
 Usage: bash install.sh [options]

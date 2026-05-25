@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: setup doctor web web-tunnel bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-autostart mihomo-autostart-status
+.PHONY: setup doctor web web-tunnel bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-select-best mihomo-autostart mihomo-autostart-status
 
 setup:
 	bash install.sh
@@ -46,6 +46,9 @@ mihomo-status:
 
 mihomo-check:
 	bash scripts/mihomo-status.sh --strict --test-proxy
+
+mihomo-select-best:
+	bash scripts/mihomo-select-best.sh
 
 mihomo-autostart:
 	bash scripts/mihomo-autostart.sh install

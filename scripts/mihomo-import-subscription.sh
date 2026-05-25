@@ -10,6 +10,7 @@ MIHOMO_MIXED_PORT="${MIHOMO_MIXED_PORT:-7890}"
 MIHOMO_EXTERNAL_CONTROLLER="${MIHOMO_EXTERNAL_CONTROLLER:-127.0.0.1:9090}"
 MIHOMO_DNS_LISTEN="${MIHOMO_DNS_LISTEN:-127.0.0.1:1053}"
 MIHOMO_TEST_URLS="${MIHOMO_TEST_URLS:-https://github.com https://huggingface.co https://pypi.org}"
+MIHOMO_AUTO_SELECT="${MIHOMO_AUTO_SELECT:-1}"
 CONFIG_FILE="$MIHOMO_CONFIG_DIR/config.yaml"
 BACKUP_DIR="$MIHOMO_CONFIG_DIR/backups"
 URL="${MIHOMO_SUBSCRIPTION_URL:-}"
@@ -37,6 +38,7 @@ Options:
   --no-start          Only import and validate config; do not start mihomo.
   --no-check          Skip listener and proxy egress checks.
   --replace-running   Stop any existing mihomo process before starting this config.
+  --no-auto-select    Do not probe/select an available mihomo node before checks.
 
 Environment:
   MIHOMO_CONFIG_DIR              default: ~/.config/mihomo
@@ -44,6 +46,7 @@ Environment:
   MIHOMO_EXTERNAL_CONTROLLER     default: 127.0.0.1:9090, added only when omitted
   MIHOMO_DNS_LISTEN              default: 127.0.0.1:1053, added only when omitted
   MIHOMO_TEST_URLS               URLs used by status --test-proxy
+  MIHOMO_AUTO_SELECT             default: 1; probe/select a working selector node before checks
 
 Notes:
   This script expects Clash/Mihomo YAML. If your provider gives a raw
@@ -73,6 +76,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --replace-running)
       REPLACE_RUNNING=1
+      shift
+      ;;
+    --no-auto-select)
+      MIHOMO_AUTO_SELECT=0
       shift
       ;;
     -h|--help)
@@ -425,6 +432,10 @@ fi
 
 if [ "$CHECK" -eq 1 ]; then
   export MIHOMO_CONFIG_DIR MIHOMO_STATE_DIR MIHOMO_TEST_URLS
+  if [ "$START" -eq 1 ] && [ "$MIHOMO_AUTO_SELECT" != "0" ] && [ -x "$SCRIPT_DIR/mihomo-select-best.sh" ]; then
+    echo "Selecting a reachable mihomo node before proxy checks..."
+    bash "$SCRIPT_DIR/mihomo-select-best.sh" || echo "mihomo selector auto-selection did not find a usable node; continuing to strict status check." >&2
+  fi
   bash "$SCRIPT_DIR/mihomo-status.sh" --strict --test-proxy
 fi
 

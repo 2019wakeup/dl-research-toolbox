@@ -170,6 +170,9 @@ source scripts/proxy-off.sh
 bash scripts/mihomo-start.sh
 bash scripts/mihomo-stop.sh
 
+# 探测并切换到可用的 mihomo 节点。
+bash scripts/mihomo-select-best.sh
+
 # 查看 mihomo 状态和代理出口。
 bash scripts/mihomo-status.sh --strict --test-proxy
 
@@ -202,6 +205,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 
 - `install.sh`：新机器配置主入口。
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境）。
+- `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
 - `scripts/web-ui.sh`：远端本地 Web 控制台入口，通过 SSH 端口转发访问。
 

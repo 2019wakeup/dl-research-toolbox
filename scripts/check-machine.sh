@@ -30,11 +30,29 @@ TOOLS=(
   mihomo
 )
 
+PYTHON_TOOLS_VENV="${PYTHON_TOOLS_VENV:-$HOME/.local/venvs/research-tools}"
+
+find_tool() {
+  local tool="$1"
+  local candidate
+  if command -v "$tool" >/dev/null 2>&1; then
+    command -v "$tool"
+    return 0
+  fi
+  for candidate in "$HOME/.local/bin/$tool" "$PYTHON_TOOLS_VENV/bin/$tool"; do
+    if [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 echo "Tool check"
 echo "----------"
 for tool in "${TOOLS[@]}"; do
-  if command -v "$tool" >/dev/null 2>&1; then
-    printf '[ok]   %-12s %s\n' "$tool" "$(command -v "$tool")"
+  if tool_path="$(find_tool "$tool")"; then
+    printf '[ok]   %-12s %s\n' "$tool" "$tool_path"
   else
     printf '[miss] %-12s\n' "$tool"
   fi
@@ -44,7 +62,6 @@ done
 echo
 echo "Python tools venv"
 echo "-----------------"
-PYTHON_TOOLS_VENV="${PYTHON_TOOLS_VENV:-$HOME/.local/venvs/research-tools}"
 if [ -x "$PYTHON_TOOLS_VENV/bin/python" ]; then
   echo "venv: $PYTHON_TOOLS_VENV"
   "$PYTHON_TOOLS_VENV/bin/python" - <<'PY'

@@ -18,9 +18,11 @@ Options:
   --no-log      Do not print recent log lines.
 
 Environment:
-  MIHOMO_CONFIG_DIR   default: ~/.config/mihomo
-  MIHOMO_STATE_DIR    default: ~/.local/state/mihomo
-  MIHOMO_TEST_URLS    space-separated URLs for --test-proxy
+  MIHOMO_CONFIG_DIR          default: ~/.config/mihomo
+  MIHOMO_STATE_DIR           default: ~/.local/state/mihomo
+  MIHOMO_TEST_URLS           space-separated URLs for --test-proxy
+  MIHOMO_TEST_RETRIES        default: 3
+  MIHOMO_TEST_RETRY_SLEEP    default: 2
 USAGE
 }
 
@@ -50,8 +52,20 @@ MIHOMO_STATE_DIR="${MIHOMO_STATE_DIR:-$HOME/.local/state/mihomo}"
 MIHOMO_LOG="${MIHOMO_LOG:-$MIHOMO_STATE_DIR/mihomo.log}"
 MIHOMO_PID_FILE="${MIHOMO_PID_FILE:-$MIHOMO_STATE_DIR/mihomo.pid}"
 MIHOMO_TEST_URLS="${MIHOMO_TEST_URLS:-https://github.com https://huggingface.co https://pypi.org}"
+MIHOMO_TEST_RETRIES="${MIHOMO_TEST_RETRIES:-3}"
+MIHOMO_TEST_RETRY_SLEEP="${MIHOMO_TEST_RETRY_SLEEP:-2}"
 CONFIG_FILE="$MIHOMO_CONFIG_DIR/config.yaml"
 FAILURES=0
+
+case "$MIHOMO_TEST_RETRIES" in
+  ''|*[!0-9]*) echo "MIHOMO_TEST_RETRIES must be a positive integer." >&2; exit 2 ;;
+esac
+if [ "$MIHOMO_TEST_RETRIES" -lt 1 ]; then
+  MIHOMO_TEST_RETRIES=1
+fi
+case "$MIHOMO_TEST_RETRY_SLEEP" in
+  ''|*[!0-9]*) echo "MIHOMO_TEST_RETRY_SLEEP must be a non-negative integer." >&2; exit 2 ;;
+esac
 
 mark_fail() {
   FAILURES=$((FAILURES + 1))
@@ -210,14 +224,27 @@ proxy_probe() {
     return 0
   fi
 
-  local url
+  local url attempt err_file err_msg
   for url in $MIHOMO_TEST_URLS; do
-    if curl -fsS -o /dev/null --connect-timeout 6 --max-time 20 -x "http://127.0.0.1:${port}" "$url"; then
-      echo "[proxy] ok: $url via 127.0.0.1:$port"
-    else
-      echo "[proxy] fail: $url via 127.0.0.1:$port"
-      if [ "$STRICT" -eq 1 ]; then mark_fail; fi
+    err_file="$(mktemp)"
+    for attempt in $(seq 1 "$MIHOMO_TEST_RETRIES"); do
+      if curl -fsS -o /dev/null --connect-timeout 6 --max-time 20 -x "http://127.0.0.1:${port}" "$url" 2>"$err_file"; then
+        echo "[proxy] ok: $url via 127.0.0.1:$port"
+        rm -f "$err_file"
+        continue 2
+      fi
+      err_msg="$(tr '\n' ' ' < "$err_file" | sed 's/[[:space:]]*$//')"
+      if [ "$attempt" -lt "$MIHOMO_TEST_RETRIES" ]; then
+        echo "[proxy] retry $attempt/$MIHOMO_TEST_RETRIES: $url via 127.0.0.1:$port${err_msg:+ ($err_msg)}"
+        sleep "$MIHOMO_TEST_RETRY_SLEEP"
+      fi
+    done
+    if [ -s "$err_file" ]; then
+      cat "$err_file" >&2
     fi
+    rm -f "$err_file"
+    echo "[proxy] fail: $url via 127.0.0.1:$port"
+    if [ "$STRICT" -eq 1 ]; then mark_fail; fi
   done
 }
 

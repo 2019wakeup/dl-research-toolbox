@@ -9,6 +9,10 @@ This document records reusable engineering lessons from migrating the toolbox to
 - Treat HTTP/HTTPS proxy egress as the critical path for research setup. A DNS UDP listener can be useful, but it should not block setup when `mixed-port`, controller, and proxy egress pass.
 - `mihomo-status.sh --strict --test-proxy` should work even before `ss` or `lsof` are installed. When listener enumeration tools are missing, use controller and curl proxy probes as the meaningful checks.
 - Use `scripts/verify-proxy-deep.sh` after setup to check GitHub, raw GitHub content, Hugging Face API, PyPI, npm registry, Git over HTTPS, Codex CLI, uv, and Python research-tool imports.
+- Proxy egress checks should retry briefly. Immediately after mihomo restarts, individual TLS probes can fail once with EOF even though the proxy and route are healthy.
+- When selector groups default to a dead node, use the local controller to delay-test leaf proxies and switch selectors without printing real node names. This should be automated before strict proxy checks.
+- Parent entrypoints must add `~/.local/bin` to `PATH` before post-install validation, because child bootstrap scripts cannot export PATH back to the parent process.
+- Deep egress checks should treat HTTP 2xx/3xx/4xx as successful transport. A 403 from a public API still proves DNS, TLS, proxy routing, and HTTP reachability; `curl -f` is too strict for this purpose.
 
 ## Codex CLI and Node.js
 
@@ -30,3 +34,4 @@ This document records reusable engineering lessons from migrating the toolbox to
 - `scripts/mihomo-autostart.sh install --mode system` is true boot autostart on normal systemd machines.
 - `scripts/mihomo-autostart.sh install --mode user --enable-linger` is appropriate when a systemd user manager is available.
 - `scripts/mihomo-autostart.sh install --mode profile` is a fallback for containers or SSH environments without systemd; it starts mihomo when the shell profile is read, not necessarily at machine boot.
+- When updating an already running mihomo binary, install to a same-directory temporary file and `mv -f` it into place. Direct `cp` over the executable can fail with `Text file busy`.

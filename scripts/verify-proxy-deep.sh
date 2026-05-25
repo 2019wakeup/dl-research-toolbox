@@ -18,6 +18,11 @@ URLS=(
 )
 FAILURES=0
 
+case ":$PATH:" in
+  *":$HOME/.local/bin:"*) ;;
+  *) export PATH="$HOME/.local/bin:$PATH" ;;
+esac
+
 usage() {
   cat <<'USAGE'
 Usage: bash scripts/verify-proxy-deep.sh [options]
@@ -100,10 +105,20 @@ fi
 echo
 echo "HTTP egress"
 echo "-----------"
+curl_egress() {
+  local url="$1"
+  local code
+  code="$(curl -sS -L --connect-timeout 8 --max-time 30 -o /dev/null -w '%{http_code}' "$url")" || return 1
+  case "$code" in
+    2*|3*|4*) return 0 ;;
+    *) echo "unexpected HTTP status: $code" >&2; return 1 ;;
+  esac
+}
+
 if command -v curl >/dev/null 2>&1; then
   for url in "${URLS[@]}"; do
     [ -z "$url" ] && continue
-    run_quiet "curl $url" curl -fsSL --connect-timeout 8 --max-time 30 -o /dev/null "$url"
+    run_quiet "curl $url" curl_egress "$url"
   done
 else
   fail "curl not found"

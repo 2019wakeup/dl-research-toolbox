@@ -82,7 +82,14 @@ if [ -z "$DOWNLOAD_URL" ] || [ "$DOWNLOAD_URL" = "null" ]; then
 fi
 
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+BIN_NEW=""
+cleanup() {
+  rm -rf "$TMP_DIR"
+  if [ -n "$BIN_NEW" ] && [ -e "$BIN_NEW" ]; then
+    rm -f "$BIN_NEW"
+  fi
+}
+trap cleanup EXIT
 
 ARCHIVE="$TMP_DIR/mihomo.gz"
 BIN_TMP="$TMP_DIR/mihomo"
@@ -93,8 +100,12 @@ gzip -dc "$ARCHIVE" > "$BIN_TMP"
 chmod +x "$BIN_TMP"
 
 mkdir -p "$INSTALL_ROOT/bin" "$BIN_DIR" "$CONFIG_DIR" "$STATE_DIR"
-cp "$BIN_TMP" "$INSTALL_ROOT/bin/mihomo"
-ln -sfn "$INSTALL_ROOT/bin/mihomo" "$BIN_DIR/mihomo"
+BIN_TARGET="$INSTALL_ROOT/bin/mihomo"
+BIN_NEW="$(mktemp "$INSTALL_ROOT/bin/.mihomo.XXXXXX")"
+install -m 0755 "$BIN_TMP" "$BIN_NEW"
+mv -f "$BIN_NEW" "$BIN_TARGET"
+BIN_NEW=""
+ln -sfn "$BIN_TARGET" "$BIN_DIR/mihomo"
 
 if [ ! -f "$CONFIG_DIR/config.yaml" ]; then
   cp "$REPO_ROOT/network/mihomo/config.yaml.example" "$CONFIG_DIR/config.yaml"
