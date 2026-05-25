@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap bootstrap-dry-run network-first check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check
+.PHONY: bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-autostart mihomo-autostart-status
 
 bootstrap:
 	bash scripts/bootstrap.sh
@@ -13,6 +13,9 @@ network-first:
 
 check:
 	bash scripts/check-machine.sh
+
+proxy-deep-check:
+	bash scripts/verify-proxy-deep.sh
 
 mihomo-install:
 	bash scripts/mihomo-install.sh
@@ -31,3 +34,9 @@ mihomo-status:
 
 mihomo-check:
 	bash scripts/mihomo-status.sh --strict --test-proxy
+
+mihomo-autostart:
+	bash scripts/mihomo-autostart.sh install
+
+mihomo-autostart-status:
+	bash scripts/mihomo-autostart.sh status

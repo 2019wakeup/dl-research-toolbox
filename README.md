@@ -24,6 +24,25 @@ source scripts/proxy-on.sh
 # 检查机器工具、GPU、mihomo 监听和代理连通性。
 bash scripts/check-machine.sh
 bash scripts/mihomo-status.sh --strict --test-proxy
+bash scripts/verify-proxy-deep.sh
+```
+
+快捷启动代理：
+
+```bash
+bash scripts/mihomo-start.sh
+source scripts/proxy-on.sh
+```
+
+配置 mihomo 自启：
+
+```bash
+# 真正开机自启，适合正常 systemd 机器。
+bash scripts/mihomo-autostart.sh install --mode system
+
+# 或使用自动选择；无 systemd 时会退到 profile hook。
+bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
+bash scripts/mihomo-autostart.sh status
 ```
 
 关闭代理环境变量和 mihomo：
@@ -126,6 +145,8 @@ bash scripts/mihomo-import-subscription.sh --replace-running
 - `scripts/mihomo-install.sh`：从 MetaCubeX/mihomo release 下载当前架构二进制。
 - `scripts/mihomo-import-subscription.sh`：输入 Clash/Mihomo 订阅 URL 或传入本地 YAML 后自动导入、校验、启动并检查可用性。
 - `scripts/mihomo-start.sh` / `mihomo-stop.sh` / `mihomo-status.sh`：用户态运行 mihomo；状态脚本支持 `--strict --test-proxy`。
+- `scripts/mihomo-autostart.sh`：安装 systemd system/user service 或 profile fallback，实现 mihomo 自动启动。
+- `scripts/verify-proxy-deep.sh`：深度验证代理是否覆盖 curl、git、npm、Codex CLI、uv 和 Python 科研工具层。
 - `scripts/proxy-on.sh` / `proxy-off.sh`：在当前 shell 中开关 `127.0.0.1:7890` 代理变量。
 - `scripts/network-turbo-on.sh`：在 AutoDL 机器上条件启用 `/etc/network_turbo`。
 - `scripts/check-machine.sh`：检查常用工具、GPU、网络连通性和代理状态，不打印代理值。
@@ -141,7 +162,7 @@ bash scripts/mihomo-import-subscription.sh --replace-running
 
 ## 当前源机器盘点
 
-源机器上发现的可迁移思路记录在 [docs/tool-inventory.md](docs/tool-inventory.md)。该文件只记录工具类别和路径形态，不记录任何敏感代理值。
+源机器上发现的可迁移思路记录在 [docs/tool-inventory.md](docs/tool-inventory.md)。迁移中的工程问题和处理规则记录在 [docs/migration-engineering-notes.md](docs/migration-engineering-notes.md)。安装后一系列脚本使用教程见 [docs/script-usage.md](docs/script-usage.md)。该文件只记录工具类别和路径形态，不记录任何敏感代理值。
 
 ## 安全检查
 

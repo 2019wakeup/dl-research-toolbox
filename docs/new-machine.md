@@ -74,9 +74,27 @@ source scripts/network-turbo-on.sh
 ```bash
 bash scripts/check-machine.sh
 bash scripts/mihomo-status.sh --strict --test-proxy
+bash scripts/verify-proxy-deep.sh
 ```
 
-## 6. Remote experiment session
+## 6. Optional mihomo autostart
+
+```bash
+# True boot autostart on normal systemd machines.
+bash scripts/mihomo-autostart.sh install --mode system
+
+# Auto mode falls back to profile hook when systemd is unavailable.
+bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
+bash scripts/mihomo-autostart.sh status
+```
+
+Use `--mode profile` only when systemd services are unavailable. Profile mode starts mihomo when a shell profile is read, not necessarily before login.
+
+## 7. Script usage guide
+
+See [script-usage.md](script-usage.md) for post-install commands, validation, autostart, proxy toggles, and tmux helper usage.
+
+## 8. Remote experiment session
 
 ```bash
 bash scripts/tmux-research.sh my-exp
