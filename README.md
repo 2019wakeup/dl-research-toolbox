@@ -154,6 +154,9 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml
 # 一键体检。
 bash scripts/doctor.sh
 
+# 安装/更新仓库内打包的 Codex skills。
+bash scripts/install-codex-skills.sh
+
 # 本地一条命令启动 SSH tunnel 和远端 Web 控制台。
 bash scripts/web-tunnel.sh
 
@@ -196,14 +199,38 @@ make mihomo-autostart-status
 
 仓库本身可以作为模板直接 fork，也可以通过 Codex skill 复用。`skills/dl-research-toolbox/assets/toolbox/` 是一份完整的轻量模板副本；`skills/dl-research-toolbox/scripts/install_toolbox.sh` 可以把它物化到新目录，或从 GitHub 拉取最新版本。
 
+本仓库同时打包 4 个 Codex skill：
+
+- `dl-research-toolbox`：新机器网络优先初始化、mihomo、CLI 工具、Codex CLI、Web 控制台。
+- `remote-project-memory`：远程项目的唯一根记忆、任务列表和向上同步规则。
+- `research-version-isolation`：科研仓库边界、版本隔离、实验记录 contract，以及可执行 hook guard。
+- `deep-learning-research`：深度学习实验流程、小规模验证、实验档案和工程经验沉淀。
+
+从仓库安装或更新这些 skills：
+
+```bash
+bash scripts/install-codex-skills.sh
+# 或只安装其中一个
+bash scripts/install-codex-skills.sh --skill research-version-isolation
+```
+
+安装后重启需要使用这些技能的 Codex session。对于研究项目仓库，建议继续安装强制检查 hook：
+
+```bash
+bash skills/research-version-isolation/scripts/install_research_hooks.sh /path/to/research-repo
+```
+
+如果已经安装了 `dl-research-toolbox` skill，也可以用它物化工具箱模板：
+
 ```bash
 bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-research-toolbox
 bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-research-toolbox --network-first --mihomo-file /root/mihomo.yaml
 ```
 
-为了降低操作者负担，本仓库把常见子任务收敛成两个入口：
+为了降低操作者负担，本仓库把常见子任务收敛成少量稳定入口：
 
 - `install.sh`：新机器配置主入口。
+- `scripts/install-codex-skills.sh`：把仓库内打包的 Codex skills 同步到 `~/.codex/skills/`。
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境）。
 - `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。

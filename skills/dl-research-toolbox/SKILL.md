@@ -45,15 +45,19 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 6. Validate with `bash scripts/doctor.sh`; use `bash scripts/doctor.sh --quick` for proxy-only validation. If controller/listeners are healthy but egress fails, run `bash scripts/mihomo-select-best.sh` to switch selector groups to a reachable node without logging real node names.
 7. Treat persistent proxy startup as the default after network-first setup. For manual repair, use `bash scripts/mihomo-autostart.sh install --mode auto --enable-linger`; use explicit `--mode system`, `--mode user --enable-linger`, or `--mode profile` only when appropriate.
 8. For SSH-forwarded monitoring/control, prefer local-side `bash scripts/web-tunnel.sh`; its first run asks for the SSH target and saves a local profile. Use `bash scripts/web-tunnel.sh --target user@server --ssh-port PORT --remote-dir '~/dl-research-toolbox' --save-profile` for non-interactive setup, and remote-side `bash scripts/web-ui.sh --port 8765` only as the manual fallback.
-9. For script usage after installation, read `docs/script-usage.md`.
-10. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
+9. When the repository is used as a Codex skill bundle, run `bash scripts/install-codex-skills.sh` from the repo to sync bundled skills into `${CODEX_HOME:-$HOME/.codex}/skills`.
+10. For research project repositories, install the executable guard with `bash skills/research-version-isolation/scripts/install_research_hooks.sh /path/to/research-repo` to enforce single-root memory, upward task sync, and classified experiment logs.
+11. For script usage after installation, read `docs/script-usage.md`.
+12. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
 
 ## Bundled Resources
 
+- Top-level `scripts/install-codex-skills.sh`: installs or updates all Codex skills bundled in the repository.
 - `scripts/install_toolbox.sh`: materializes this skill's bundled toolbox asset or clones/updates the GitHub repo; use `--network-first --mihomo-file PATH` for direct setup, or run the generated toolbox's `install.sh`.
 - `assets/toolbox/`: self-contained copy of the lightweight toolbox template.
 - `references/toolbox-scope.md`: package scope, included tools, and exclusions.
 - `references/networking.md`: mihomo import, autostart, listener checks, and proxy validation notes.
 - `references/migration-engineering-notes.md`: migration failure modes and fixes to remember.
+- Repository sibling skills: `remote-project-memory`, `research-version-isolation`, and `deep-learning-research` provide project memory, version isolation, experiment contracts, and hook enforcement for actual research repositories.
 
 Read the relevant reference only when the task needs those details.

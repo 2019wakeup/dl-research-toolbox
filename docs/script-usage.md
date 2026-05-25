@@ -185,6 +185,29 @@ codex --version
 
 The script ensures a modern Node.js is installed, handles Ubuntu Node 12 conflicts, reinstalls broken Codex CLI packages, and persists `~/.local/bin` into shell profiles.
 
+## Codex skills
+
+Install or update the Codex skills bundled in this repository:
+
+```bash
+bash scripts/install-codex-skills.sh
+```
+
+List bundled skills or install only one:
+
+```bash
+bash scripts/install-codex-skills.sh --list
+bash scripts/install-codex-skills.sh --skill research-version-isolation
+```
+
+For a research project repository, install the executable memory/version guard:
+
+```bash
+bash skills/research-version-isolation/scripts/install_research_hooks.sh /path/to/research-repo
+```
+
+The guard enforces a single root memory source, upward task sync for child/domain changes, and classified experiment logs under `research/experiments/<phase>/<series>/<run_id>/`.
+
 ## Bootstrap
 
 Inspect the install plan:
@@ -231,6 +254,8 @@ make web
 make network-first
 make check
 make proxy-deep-check
+make install-skills
+make skills-list
 make mihomo-start
 make mihomo-check
 make mihomo-autostart
