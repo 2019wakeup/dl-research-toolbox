@@ -43,6 +43,23 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-autostart
 bash scripts/network-first-setup.sh --url 'https://example.com/sub.yaml'
 ```
 
+## Web UI over SSH forwarding
+
+Start the local-only control panel on the server:
+
+```bash
+cd ~/dl-research-toolbox
+bash scripts/web-ui.sh --port 8765
+```
+
+Forward the port from your local machine:
+
+```bash
+ssh -N -L 8765:127.0.0.1:8765 user@server
+```
+
+Open the tokenized URL printed by `web-ui.sh`. The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and inspect autostart status. It binds to `127.0.0.1` by default and does not require HTTP tunneling.
+
 ## Proxy session commands
 
 ```bash
@@ -193,6 +210,7 @@ This opens a shell window, GPU monitor window, and log window. It does not assum
 ```bash
 make setup
 make doctor
+make web
 make network-first
 make check
 make proxy-deep-check

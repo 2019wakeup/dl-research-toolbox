@@ -92,11 +92,30 @@ bash scripts/mihomo-autostart.sh install --mode system
 
 Use `--no-autostart` with `network-first-setup.sh` only when the machine should not persist proxy startup. Use `--mode profile` only when systemd services are unavailable. Profile mode starts mihomo when a shell profile is read, not necessarily before login.
 
-## 7. Script usage guide
+## 7. Optional Web UI over SSH forwarding
+
+On servers without HTTP tunneling, keep the UI local to the server and access it through SSH forwarding.
+
+Server:
+
+```bash
+cd ~/dl-research-toolbox
+bash scripts/web-ui.sh --port 8765
+```
+
+Local machine:
+
+```bash
+ssh -N -L 8765:127.0.0.1:8765 user@server
+```
+
+Open the tokenized local URL printed by the server command.
+
+## 8. Script usage guide
 
 See [script-usage.md](script-usage.md) for post-install commands, validation, autostart, proxy toggles, and tmux helper usage.
 
-## 8. Remote experiment session
+## 9. Remote experiment session
 
 ```bash
 bash scripts/tmux-research.sh my-exp

@@ -59,3 +59,20 @@ bash scripts/mihomo-autostart.sh status
 ```
 
 Use `--mode system` for true boot autostart on normal systemd machines. Use `--mode user --enable-linger` for systemd user service, and profile fallback only in containers or SSH images where systemd is unavailable.
+
+
+## Web UI through SSH port forwarding
+
+Use the local-only Web UI when HTTP tunneling is unavailable or undesirable:
+
+```bash
+bash scripts/web-ui.sh --port 8765
+```
+
+Then from the local machine:
+
+```bash
+ssh -N -L 8765:127.0.0.1:8765 user@server
+```
+
+Open the tokenized URL printed by the server. The UI calls fixed toolbox scripts only: mihomo start/stop/restart/status, doctor checks, deep proxy checks, and autostart status/install. Keep the default `127.0.0.1` bind and token protection.
