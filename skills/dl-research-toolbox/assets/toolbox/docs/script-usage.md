@@ -2,6 +2,23 @@
 
 This guide covers the scripts you normally use after installing the toolbox on a new machine. Commands assume you are in the toolbox directory.
 
+## One-command setup
+
+Use the top-level wrapper on a fresh machine. It detects `./mihomo.yaml` or `~/mihomo.yaml` automatically, or accepts an explicit path. It runs network-first setup and then `scripts/doctor.sh`.
+
+```bash
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml
+```
+
+Common variants:
+
+```bash
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --replace-running
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --dry-run
+```
+
 ## Network-first setup
 
 Use this on a fresh machine. It installs mihomo first, imports your local YAML file, configures mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use a local YAML file for cold-start migration because a subscription URL may be blocked before the proxy is running.
@@ -110,25 +127,19 @@ bash scripts/mihomo-autostart.sh uninstall
 
 ## Validation
 
-Basic machine check:
+Unified post-install check. It sources `scripts/proxy-on.sh` by default:
 
 ```bash
-bash scripts/check-machine.sh
+bash scripts/doctor.sh
 ```
 
-Proxy process, listeners, controller, and proxy egress:
+Quick proxy-only check:
 
 ```bash
-bash scripts/mihomo-status.sh --strict --test-proxy
+bash scripts/doctor.sh --quick
 ```
 
-Deep proxy validation across common research download paths:
-
-```bash
-bash scripts/verify-proxy-deep.sh
-```
-
-The deep check covers proxy environment variables, mihomo strict status, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
+The full doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, and `verify-proxy-deep.sh`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
 
 ## Codex CLI
 
@@ -180,6 +191,8 @@ This opens a shell window, GPU monitor window, and log window. It does not assum
 ## Make shortcuts
 
 ```bash
+make setup
+make doctor
 make network-first
 make check
 make proxy-deep-check

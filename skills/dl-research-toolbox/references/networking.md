@@ -5,18 +5,18 @@
 Run network setup before full bootstrap so later package downloads use the proxy:
 
 ```bash
-bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`network-first-setup.sh` installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI, and only then runs full `bootstrap.sh`. Use `--url` only when direct access to the subscription endpoint already works.
+`install.sh` is the operator-facing wrapper. It calls `network-first-setup.sh`, installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI, runs full `bootstrap.sh`, and finishes with `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
 
 For cold-start migration, transfer a YAML file to the new machine and pass it with `--file`. Do not depend on the new machine downloading a subscription URL before the proxy exists.
 
 For proxy setup only:
 
 ```bash
-bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
 ```
 
 The import script expects Clash/Mihomo YAML. It prompts for a local YAML path when no source is provided. It rejects raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` instead of using third-party converters.
@@ -24,7 +24,7 @@ The import script expects Clash/Mihomo YAML. It prompts for a local YAML path wh
 If an existing mihomo process already owns the configured port:
 
 ```bash
-bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-running
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --replace-running
 ```
 
 ## Checks
@@ -32,8 +32,7 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-runnin
 Use strict checks after import:
 
 ```bash
-bash scripts/mihomo-status.sh --strict --test-proxy
-bash scripts/verify-proxy-deep.sh
+bash scripts/doctor.sh
 ```
 
 The status script checks process state, configured TCP listeners such as `mixed-port` and `external-controller`, DNS UDP listener when configured, controller `/version`, and proxy egress through `127.0.0.1:<mixed-port>`.

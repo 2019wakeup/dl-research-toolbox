@@ -39,17 +39,17 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 
 1. Inspect the target machine and workspace. Check existing repos, dirty worktrees, and whether `~/.config/mihomo/config.yaml` already exists.
 2. Install or update the toolbox using `scripts/install_toolbox.sh`. Use the bundled asset when GitHub credentials are unavailable; use `--from-git` when the remote repository should be the source of truth.
-3. Prefer the network-first entrypoint with a local YAML file: `bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml`. It installs/configures mihomo first, imports local Clash/Mihomo YAML, installs mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use `--url` only when direct access to the subscription endpoint already works.
-4. Use `bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap` when the user wants only proxy setup first.
+3. Prefer the top-level entrypoint with a local YAML file: `bash install.sh --mihomo-yaml /path/to/mihomo.yaml`. It installs/configures mihomo first, imports local Clash/Mihomo YAML, installs mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, runs full bootstrap through the proxy, then runs `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
+4. Use `bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap` when the user wants only proxy setup first.
 5. Use `bash scripts/bootstrap.sh --dry-run` only for inspection, or after proxy is known working.
-6. Validate with `bash scripts/check-machine.sh`, `bash scripts/mihomo-status.sh --strict --test-proxy`, and `bash scripts/verify-proxy-deep.sh`.
+6. Validate with `bash scripts/doctor.sh`; use `bash scripts/doctor.sh --quick` for proxy-only validation.
 7. Treat persistent proxy startup as the default after network-first setup. For manual repair, use `bash scripts/mihomo-autostart.sh install --mode auto --enable-linger`; use explicit `--mode system`, `--mode user --enable-linger`, or `--mode profile` only when appropriate.
 8. For script usage after installation, read `docs/script-usage.md`.
 9. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
 
 ## Bundled Resources
 
-- `scripts/install_toolbox.sh`: materializes this skill's bundled toolbox asset or clones/updates the GitHub repo; use `--network-first --mihomo-file PATH` for the recommended setup order.
+- `scripts/install_toolbox.sh`: materializes this skill's bundled toolbox asset or clones/updates the GitHub repo; use `--network-first --mihomo-file PATH` for direct setup, or run the generated toolbox's `install.sh`.
 - `assets/toolbox/`: self-contained copy of the lightweight toolbox template.
 - `references/toolbox-scope.md`: package scope, included tools, and exclusions.
 - `references/networking.md`: mihomo import, autostart, listener checks, and proxy validation notes.

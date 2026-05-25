@@ -1,6 +1,12 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-autostart mihomo-autostart-status
+.PHONY: setup doctor bootstrap bootstrap-dry-run network-first check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-autostart mihomo-autostart-status
+
+setup:
+	bash install.sh
+
+doctor:
+	bash scripts/doctor.sh
 
 bootstrap:
 	bash scripts/bootstrap.sh

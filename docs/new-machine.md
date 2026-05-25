@@ -12,24 +12,24 @@ cd dl-research-toolbox
 ## 2. Configure network first
 
 ```bash
-bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`network-first-setup.sh` installs mihomo, imports a local Clash/Mihomo YAML file, checks listeners and proxy egress, installs mihomo autostart by default, installs Codex CLI through npm, then runs the full bootstrap with proxy variables already active inside the script. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
+`install.sh` is the main operator entrypoint. It calls `network-first-setup.sh`, installs mihomo, imports a local Clash/Mihomo YAML file, checks listeners and proxy egress, installs mihomo autostart by default, installs Codex CLI through npm, runs the full bootstrap with proxy variables already active inside the script, then runs `scripts/doctor.sh`. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
 
 Use a local YAML file for cold-start migration. A subscription URL may be blocked before mihomo is running; `--url` is only for machines that already have direct access to the subscription endpoint.
 
 If an old mihomo process is already using the configured port, rerun with:
 
 ```bash
-bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --replace-running
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --replace-running
 ```
 
 To configure network only and skip the full bootstrap:
 
 ```bash
-bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-bootstrap
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
 ```
 
 The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed Python research tools venv at `~/.local/venvs/research-tools`. It does not install conda, PyTorch, CUDA wheels, model code, datasets, or checkpoints.
@@ -37,7 +37,7 @@ The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed 
 To skip the Python tools venv when bootstrap runs:
 
 ```bash
-INSTALL_PYTHON_TOOLS=0 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
+bash install.sh --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
 ```
 
 ## 3. Configure mihomo manually when needed
@@ -74,9 +74,7 @@ source scripts/network-turbo-on.sh
 ## 5. Validate
 
 ```bash
-bash scripts/check-machine.sh
-bash scripts/mihomo-status.sh --strict --test-proxy
-bash scripts/verify-proxy-deep.sh
+bash scripts/doctor.sh
 ```
 
 ## 6. mihomo autostart
