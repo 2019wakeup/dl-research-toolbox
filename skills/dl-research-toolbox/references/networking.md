@@ -9,7 +9,7 @@ bash install.sh --mihomo-yaml /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`install.sh` is the operator-facing wrapper. It calls `network-first-setup.sh`, installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI, runs full `bootstrap.sh`, and finishes with `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
+`install.sh` is the operator-facing wrapper. It calls `network-first-setup.sh`, installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI plus the Linux `bubblewrap` sandbox prerequisite, runs full `bootstrap.sh`, and finishes with `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
 
 For cold-start migration, transfer a YAML file to the new machine and pass it with `--file`. Do not depend on the new machine downloading a subscription URL before the proxy exists.
 

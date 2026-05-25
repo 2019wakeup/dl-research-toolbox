@@ -56,7 +56,7 @@ scp ./mihomo.yaml root@your-new-machine:/root/mihomo.yaml
 4. 启动 mihomo，检查监听、controller 和代理出口。
 5. 默认配置 mihomo 自启。
 6. 在脚本进程内启用代理变量。
-7. 先安装 Codex CLI。
+7. 先安装 Codex CLI，并补齐 Codex Linux sandbox 需要的 `bubblewrap`/`bwrap`。
 8. 再安装通用科研 CLI、`gh`、`npm`、`uv` 和精简 Python 工具层。
 9. 运行 `scripts/doctor.sh` 做统一体检。
 
@@ -204,6 +204,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 为了降低操作者负担，本仓库把常见子任务收敛成两个入口：
 
 - `install.sh`：新机器配置主入口。
+- `scripts/check-codex-sandbox.sh`：检查 Codex Linux sandbox 的 `bubblewrap` 前置项和容器 namespace 能力。
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境）。
 - `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
@@ -246,6 +247,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |   |-- toolbox-web.py                 # Web 控制台后端（Python 标准库）
 |   |-- bootstrap.sh                   # 通用 CLI、gh、npm、uv、Python 工具层安装
 |   |-- install-codex-cli.sh           # Codex CLI 安装/修复
+|   |-- check-codex-sandbox.sh         # Codex bubblewrap/sandbox 前置项检查
 |   |-- mihomo-install.sh              # mihomo 二进制安装
 |   |-- mihomo-import-subscription.sh  # 本地 Clash/Mihomo YAML 导入、校验、启动、检查
 |   |-- mihomo-start.sh                # 用户态启动 mihomo

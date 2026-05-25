@@ -185,6 +185,19 @@ codex --version
 
 The script ensures a modern Node.js is installed, handles Ubuntu Node 12 conflicts, reinstalls broken Codex CLI packages, and persists `~/.local/bin` into shell profiles.
 
+On Linux, Codex also expects the OS package manager's `bubblewrap` package so `bwrap` is available on PATH. The installer installs it on apt-based systems and then runs:
+
+```bash
+bash scripts/check-codex-sandbox.sh
+```
+
+The check distinguishes two cases:
+
+- `bwrap is not on PATH`: install `bubblewrap` with the OS package manager, for example `apt-get update && apt-get install -y bubblewrap`.
+- `bwrap: Creating new namespace failed: Operation not permitted`: `bubblewrap` is installed, but the host/container policy blocks namespace creation. The PATH prerequisite is fixed; full sandbox execution requires container runtime or host permission changes.
+
+Reference: [OpenAI Codex sandbox prerequisites](https://developers.openai.com/codex/concepts/sandboxing#prerequisites).
+
 ## Codex skills
 
 Install or update the Codex skills bundled in this repository:

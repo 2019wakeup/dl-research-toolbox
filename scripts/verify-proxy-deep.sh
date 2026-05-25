@@ -143,6 +143,11 @@ echo
 echo "CLI tools"
 echo "---------"
 if command -v codex >/dev/null 2>&1; then run_quiet "codex --version" codex --version; else fail "codex not found"; fi
+if [ -f "$SCRIPT_DIR/check-codex-sandbox.sh" ]; then
+  run_quiet "Codex sandbox prerequisites" bash "$SCRIPT_DIR/check-codex-sandbox.sh"
+else
+  fail "missing scripts/check-codex-sandbox.sh"
+fi
 if command -v uv >/dev/null 2>&1; then run_quiet "uv --version" uv --version; else fail "uv not found"; fi
 
 if [ "$CHECK_PYTHON" -eq 1 ]; then

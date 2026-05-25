@@ -20,6 +20,8 @@ This document records reusable engineering lessons from migrating the toolbox to
 - Switching from Ubuntu Node 12 to NodeSource Node can conflict with `nodejs`, `npm`, `libnode-dev`, and `libnode72`. The installer should repair dpkg state and remove Debian Node packages before installing NodeSource `nodejs`.
 - A Codex CLI installed under the wrong Node version can miss optional platform packages such as `@openai/codex-linux-x64`. If `codex --version` fails, reinstall `@openai/codex@latest`.
 - Persist `~/.local/bin` in both `.bashrc` and `.profile`, because non-interactive SSH, login shells, and fresh terminals do not always read the same startup file.
+- On Linux/WSL2, install the distro `bubblewrap` package so Codex finds `bwrap` on PATH instead of warning that it must use the bundled helper. On Ubuntu 22.04, `apt-get install -y bubblewrap` provides `/usr/bin/bwrap`; verify with `command -v bwrap` and `bwrap --version`.
+- Treat `bwrap: Creating new namespace failed: Operation not permitted` separately from the PATH warning. It means the current host/container blocks namespace creation, even when `kernel.unprivileged_userns_clone=1`; diagnose with `scripts/check-codex-sandbox.sh` and fix at container runtime or host policy level if strict sandbox execution is required.
 
 ## Bootstrap idempotency
 

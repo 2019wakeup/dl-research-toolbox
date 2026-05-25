@@ -16,7 +16,7 @@ bash install.sh --mihomo-yaml /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`install.sh` is the main operator entrypoint. It calls `network-first-setup.sh`, installs mihomo, imports a local Clash/Mihomo YAML file, checks listeners and proxy egress, installs mihomo autostart by default, installs Codex CLI through npm, runs the full bootstrap with proxy variables already active inside the script, then runs `scripts/doctor.sh`. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
+`install.sh` is the main operator entrypoint. It calls `network-first-setup.sh`, installs mihomo, imports a local Clash/Mihomo YAML file, checks listeners and proxy egress, installs mihomo autostart by default, installs Codex CLI through npm, installs the Linux `bubblewrap` sandbox prerequisite, runs the full bootstrap with proxy variables already active inside the script, then runs `scripts/doctor.sh`. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
 
 Use a local YAML file for cold-start migration. A subscription URL may be blocked before mihomo is running; `--url` is only for machines that already have direct access to the subscription endpoint.
 

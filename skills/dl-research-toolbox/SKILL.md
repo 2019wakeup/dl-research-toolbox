@@ -39,7 +39,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 
 1. Inspect the target machine and workspace. Check existing repos, dirty worktrees, and whether `~/.config/mihomo/config.yaml` already exists.
 2. Install or update the toolbox using `scripts/install_toolbox.sh`. Use the bundled asset when GitHub credentials are unavailable; use `--from-git` when the remote repository should be the source of truth.
-3. Prefer the top-level entrypoint with a local YAML file: `bash install.sh --mihomo-yaml /path/to/mihomo.yaml`. It installs/configures mihomo first, imports local Clash/Mihomo YAML, installs mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, runs full bootstrap through the proxy, then runs `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
+3. Prefer the top-level entrypoint with a local YAML file: `bash install.sh --mihomo-yaml /path/to/mihomo.yaml`. It installs/configures mihomo first, imports local Clash/Mihomo YAML, installs mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI plus the Linux `bubblewrap` sandbox prerequisite, runs full bootstrap through the proxy, then runs `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
 4. Use `bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap` when the user wants only proxy setup first.
 5. Use `bash scripts/bootstrap.sh --dry-run` only for inspection, or after proxy is known working.
 6. Validate with `bash scripts/doctor.sh`; use `bash scripts/doctor.sh --quick` for proxy-only validation. If controller/listeners are healthy but egress fails, run `bash scripts/mihomo-select-best.sh` to switch selector groups to a reachable node without logging real node names.
@@ -48,7 +48,8 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 9. When the repository is used as a Codex skill bundle, run `bash scripts/install-codex-skills.sh` from the repo to sync bundled skills into `${CODEX_HOME:-$HOME/.codex}/skills`.
 10. For research project repositories, install the executable guard with `bash skills/research-version-isolation/scripts/install_research_hooks.sh /path/to/research-repo` to enforce single-root memory, upward task sync, and classified experiment logs.
 11. For script usage after installation, read `docs/script-usage.md`.
-12. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
+12. If Codex reports missing bubblewrap, run `bash scripts/install-codex-cli.sh` or `bash scripts/check-codex-sandbox.sh`; distinguish missing `bwrap` on PATH from host/container namespace denial.
+13. If editing the toolbox itself, run `bash -n scripts/*.sh` for changed shell scripts, `git diff --check`, sensitive keyword grep, then commit and push.
 
 ## Bundled Resources
 

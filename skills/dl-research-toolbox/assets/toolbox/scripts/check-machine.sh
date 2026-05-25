@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 TOOLS=(
+  bwrap
   codex
   gh
   git
@@ -57,6 +59,15 @@ for tool in "${TOOLS[@]}"; do
     printf '[miss] %-12s\n' "$tool"
   fi
 done
+
+echo
+if [ -f "$SCRIPT_DIR/check-codex-sandbox.sh" ]; then
+  bash "$SCRIPT_DIR/check-codex-sandbox.sh" || true
+else
+  echo "Codex sandbox prerequisite"
+  echo "--------------------------"
+  echo "scripts/check-codex-sandbox.sh not found"
+fi
 
 
 echo

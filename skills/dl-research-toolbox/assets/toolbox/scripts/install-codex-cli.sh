@@ -6,6 +6,8 @@ CODEX_NPM_PACKAGE="${CODEX_NPM_PACKAGE:-@openai/codex}"
 CODEX_INSTALL_PREFIX="${CODEX_INSTALL_PREFIX:-$HOME/.local}"
 CODEX_NODE_MAJOR="${CODEX_NODE_MAJOR:-22}"
 CODEX_MIN_NODE_MAJOR="${CODEX_MIN_NODE_MAJOR:-16}"
+CODEX_INSTALL_BUBBLEWRAP="${CODEX_INSTALL_BUBBLEWRAP:-1}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'USAGE'
@@ -19,6 +21,7 @@ Environment:
   CODEX_INSTALL_PREFIX    default: ~/.local
   CODEX_NODE_MAJOR        default: 22, used when Node.js is missing or too old
   CODEX_MIN_NODE_MAJOR    default: 16, minimum required for Codex CLI
+  CODEX_INSTALL_BUBBLEWRAP default: 1, install OS bubblewrap for Codex sandboxing
 USAGE
 }
 
@@ -181,11 +184,76 @@ ensure_npm() {
   run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends npm
 }
 
+check_codex_sandbox() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] bash scripts/check-codex-sandbox.sh"
+    return 0
+  fi
+
+  if [ -f "$SCRIPT_DIR/check-codex-sandbox.sh" ]; then
+    bash "$SCRIPT_DIR/check-codex-sandbox.sh" || true
+  elif command -v bwrap >/dev/null 2>&1; then
+    echo "bwrap installed: $(command -v bwrap)"
+    bwrap --version || true
+  fi
+}
+
+ensure_bubblewrap() {
+  case "$CODEX_INSTALL_BUBBLEWRAP" in
+    1|true|yes|auto) ;;
+    0|false|no)
+      echo "Skipping bubblewrap install because CODEX_INSTALL_BUBBLEWRAP=$CODEX_INSTALL_BUBBLEWRAP."
+      return 0
+      ;;
+    *)
+      echo "Invalid CODEX_INSTALL_BUBBLEWRAP=$CODEX_INSTALL_BUBBLEWRAP" >&2
+      exit 2
+      ;;
+  esac
+
+  if command -v bwrap >/dev/null 2>&1; then
+    check_codex_sandbox
+    return 0
+  fi
+
+  if ! command -v apt-get >/dev/null 2>&1; then
+    echo "bwrap is not on PATH. Install bubblewrap with your OS package manager." >&2
+    echo "Reference: https://developers.openai.com/codex/concepts/sandboxing#prerequisites" >&2
+    return 0
+  fi
+
+  local sudo_cmd=()
+  if [ "$(id -u)" -ne 0 ]; then
+    if ! command -v sudo >/dev/null 2>&1; then
+      echo "sudo not found and current user is not root." >&2
+      exit 1
+    fi
+    sudo_cmd=(sudo)
+  fi
+
+  echo "Installing bubblewrap for Codex sandbox prerequisites."
+  run "${sudo_cmd[@]}" apt-get update
+  run "${sudo_cmd[@]}" apt-get install -y --no-install-recommends bubblewrap
+  hash -r 2>/dev/null || true
+
+  if [ "$DRY_RUN" -eq 0 ] && ! command -v bwrap >/dev/null 2>&1; then
+    echo "bubblewrap install finished, but bwrap is not on PATH." >&2
+    exit 1
+  fi
+  check_codex_sandbox
+}
+
 ensure_npm
+ensure_bubblewrap
 ensure_path_now
 existing="$(find_codex)"
 if [ -n "$existing" ]; then
   echo "codex already installed: $existing"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    ensure_path_persisted
+    echo "[dry-run] codex --version"
+    exit 0
+  fi
   if [ "$DRY_RUN" -eq 0 ] && "$existing" --version; then
     ensure_path_persisted
     exit 0
