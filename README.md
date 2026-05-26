@@ -203,9 +203,28 @@ make mihomo-autostart-status
 
 - `dl-research-toolbox`：新机器网络优先初始化、mihomo、CLI 工具、Codex CLI、Web 控制台。
 - `dataset-download-network`：大数据集下载链路诊断、下载方式选择、镜像 manifest/hash 校验。
-- `remote-project-memory`：远程项目的唯一根记忆、任务列表和向上同步规则。
-- `research-version-isolation`：科研仓库边界、版本隔离、实验记录 contract，以及可执行 hook guard。
+- `remote-project-memory`：非科研远程项目的唯一根记忆、任务列表和向上同步规则；遇到科研/深度学习项目时会让位给 `research-version-isolation`。
+- `research-version-isolation`：科研仓库边界、版本隔离、任务图、实验记录 contract，以及可执行 hook guard。
 - `deep-learning-research`：深度学习实验流程、小规模验证、实验档案和工程经验沉淀。
+
+科研项目的任务管理现在由 `research-version-isolation` 独立负责，不再和 `remote-project-memory` 同时作用于同一个项目根目录。新 session 应先读 `tasks/task_frontier.md`、`tasks/task_graph.yaml` 和 `tasks/task_events.jsonl`，把用户请求匹配到已有任务，再决定是继续旧任务还是创建新任务。
+
+`research-version-isolation` 要求科研项目用机器可读任务图作为 source of truth：
+
+- `tasks/task_graph.yaml`：任务节点、状态、优先级、依赖/阻塞/验证边、证据、退出条件和下一步。
+- `tasks/task_events.jsonl`：追加式任务事件日志。
+- `tasks/task_frontier.md`、`tasks/task_index.md`、`tasks/views/`：生成给 agent 读的入口和索引。
+- `tasks/task_board.html`：生成给人看的静态 HTML 任务板，可承载高对比度视图、任务图和中英说明。
+- `tasks/task_progress.md`：按时间记录人类可读进度，但不再作为当前任务状态的唯一来源。
+
+如果项目内有 `scripts/project/task_graph.py`，任务管理或项目记忆变更收尾前应运行：
+
+```bash
+python3 scripts/project/task_graph.py render
+python3 scripts/project/task_graph.py gate
+```
+
+`gate` 应拦截孤立任务、缺少证据的终态任务、active 任务无 next action、blocked 任务无 blocker、缺少退出条件、证据文件不存在、frontier 引用错误，以及生成视图过期等问题。
 
 从仓库安装或更新这些 skills：
 

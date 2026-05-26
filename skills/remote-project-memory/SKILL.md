@@ -7,6 +7,22 @@ description: A skill for creating and maintaining a persistent, generic project 
 
 This skill guides the process of creating and maintaining a persistent, on-host project memory when working on a remote server. It ensures that critical, generic project information is always available in the project's working directory, serving as a single source of truth for the project's status, goals, and architecture.
 
+## Scope Boundary With Research Projects
+
+Do not run this skill alongside `research-version-isolation` for the same local project root. If the workspace is a research or deep-learning project, or if the user asks for research task governance, experiment tracking, dataset/version isolation, task graph management, or phase checkpoints, hand off to `research-version-isolation` and stop applying this skill's task/memory workflow.
+
+This skill owns only generic, non-research remote project memory. `research-version-isolation` owns the full memory and task system for research repositories, including root `info/`, root `tasks/`, task graph, task frontier, event log, experiment records, and upward synchronization.
+
+Research project indicators include any of:
+
+- `research/`, `data_raw/`, `data_processed/`, `features/`, `checkpoints/`, or experiment output directories;
+- dataset download/access reports;
+- model training/evaluation scripts;
+- `research/experiments/` or experiment records;
+- user language such as research project, dataset, training run, baseline, paper, experiment, checkpoint, or subject split.
+
+If a generic project later becomes a research project, migrate rather than duplicate: keep existing `info/` prose if useful, create the research task graph under `tasks/`, and record the handoff in `tasks/task_progress.md`.
+
 ## Core Principle: Foundational, Extensible, and Decoupled Memory
 
 The primary goal is to establish a standardized, minimal directory structure and set of documents that serve as a **foundational memory layer** for any project. This layer is designed to be **extensible** by other domain-specific skills (like `deep-learning-research`) which can build upon this foundation by adding their specialized memory structures, without creating tight coupling with this core skill.
@@ -16,6 +32,8 @@ The primary goal is to establish a standardized, minimal directory structure and
 Upon connecting to a remote host to begin work on a project, follow these steps:
 
 ### 0. Resolve the Project Memory Root
+
+First check whether the workspace should be handled by `research-version-isolation` using the scope boundary above. If yes, do not initialize or update this generic memory workflow.
 
 Before creating files, identify the canonical project memory root. Search upward from the current directory for `.project-memory-root`, or for an existing `info/project_summary.md` plus `tasks/task_list.md`. If found, use that ancestor as the root. If multiple candidate roots exist, use the nearest one and mention the ambiguity.
 
@@ -72,18 +90,14 @@ Here is the foundational file structure this skill establishes:
 - After any child or domain memory change, update the nearest parent/root memory with a concise synchronization entry. Required fields: child path, owner, branch/commit or run id, status change, evidence artifact, and next action.
 - When local memories disagree, prefer artifacts and machine-readable records, then current logs/code, then child memory, then root summary, then legacy prose.
 
-## Hook Enforcement
+## Research Repositories
 
-For research repositories, pair this skill with `research-version-isolation` and install its hook guard. The hook is the enforcement layer for unique memory roots and upward synchronization; this skill only defines the core memory files.
+For research repositories, use `research-version-isolation` instead of this skill. Do not pair both skills for the same project root.
 
-```bash
-bash <research-version-isolation-skill-dir>/scripts/install_research_hooks.sh .
-```
+## Non-Research Domain Extensions
 
-## Domain-Specific Extensions (Decoupled Integration)
+This skill can be extended by non-research domain-specific skills when they only need generic project memory plus a namespaced domain directory.
 
-This skill is designed to be extended by other domain-specific skills. For example, a `deep-learning-research` skill should place specialized memory under a namespaced domain directory such as `research/`, including `research/trial_error_log.md`, `research/task_tree.md`, and `research/experiments/...`. Domain memory should not be placed directly in `info/` unless it is a namespaced subdirectory and the owning skill explicitly requires it.
+For research or deep-learning projects, do not use this extension model. Use `research-version-isolation` as the sole memory/task governance skill for that project root.
 
-**`remote-project-memory` will NOT manage these domain-specific files directly.** Instead, it provides the stable foundation, and other skills are responsible for creating, populating, and maintaining their specialized memory structures within the project directory. This ensures **loose coupling** and allows each skill to manage its own domain effectively.
-
-For detailed guidance on how to extend this foundational memory with domain-specific structures, refer to `references/domain_extension.md`.
+For non-research domains, `remote-project-memory` does not manage domain-specific files directly; the owning skill must keep its own namespace synchronized into the generic root memory.

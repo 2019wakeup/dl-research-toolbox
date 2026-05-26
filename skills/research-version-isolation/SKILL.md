@@ -21,6 +21,19 @@ This skill is split into two layers:
 
 The goal is not just to make `git status` readable. The goal is to make both project state and experiment state auditable.
 
+## Exclusive Scope For Research Projects
+
+When a local project root is a research/deep-learning workspace, this skill owns the project memory and task system by itself. Do not run `remote-project-memory` in parallel for the same root. Generic remote memory is for non-research projects only.
+
+This skill must initialize and maintain:
+
+- root `info/` project memory;
+- root `tasks/` task graph, frontier, event log, generated views, and progress log;
+- `research/` domain memory and experiment records;
+- upward synchronization from child repos or domain directories.
+
+Research project indicators include datasets, model training/evaluation, papers, experiments, subject splits, checkpoints, `research/`, `data_raw/`, `features/`, or dataset access reports.
+
 ## Non-negotiable rules
 
 ### Rule 1: unique source of truth
@@ -58,6 +71,77 @@ Required upward sync entry in the nearest parent/root `tasks/task_progress.md`:
 - next action and next owner
 
 Root `tasks/task_list.md` must remain a high-level index and link to child/domain detail. It must not duplicate full child task trees or experiment logs.
+
+### Rule 1B: task graph is the source of truth
+
+Root task state must be managed by a machine-readable task graph, not by an ad hoc Markdown todo list.
+
+Required root task files:
+
+- `tasks/task_graph.yaml`: canonical task nodes, statuses, lineage edges, evidence, exit conditions, blockers, and next actions.
+- `tasks/task_events.jsonl`: append-only task events; one JSON object per meaningful task state change.
+- `tasks/task_frontier.md`: generated session-entry view showing active next tasks, blocked tasks, recently completed tasks, recent events, and do-not-repeat warnings.
+- `tasks/task_index.md`: generated task index.
+- `tasks/views/`: generated views such as by-status and by-epic.
+- `tasks/task_board.html`: generated static human-readable task board.
+- `tasks/task_progress.md`: chronological human progress log; not the source of truth for current task state.
+
+`tasks/task_list.md` may exist only as a compact legacy summary or pointer to `task_frontier.md`/`task_graph.yaml`.
+
+Allowed task statuses:
+
+- `backlog`
+- `ready`
+- `in_progress`
+- `blocked`
+- `review`
+- `done`
+- `dropped`
+
+Allowed task edge types:
+
+- `decomposes_to`
+- `depends_on`
+- `blocks`
+- `enables`
+- `continues`
+- `supersedes`
+- `validates`
+- `produces`
+- `uses`
+- `related_to`
+
+Every non-root task must have at least one lineage relation: `parent`, `depends_on`, an incoming edge, or an explicit `related_to` edge. No orphan tasks.
+
+Terminal tasks (`done` or `dropped`) must include evidence unless they are purely administrative and the reason is recorded.
+
+Every substantive task must include an `exit_condition`; a task is not done until the exit condition is satisfied by artifacts.
+
+### Rule 1C: session bootstrap starts from the frontier
+
+At the start of a new session in a research project:
+
+1. Resolve the canonical memory root.
+2. Read `tasks/task_frontier.md` if present.
+3. Read `tasks/task_graph.yaml`.
+4. Read recent entries from `tasks/task_events.jsonl`.
+5. Read `info/project_summary.md`.
+6. Match the user request to an existing task before creating a new task.
+
+If the request continues existing work, update that existing task and append a `continues` event or edge. Do not create a duplicate task.
+
+If a new task is required, attach it to a parent epic and add at least one relation (`depends_on`, `continues`, `related_to`, etc.) plus a clear exit condition and next action.
+
+### Rule 1D: artifact before status claim
+
+Every status claim must point to evidence:
+
+- Data availability claims point to registry, manifest, checksums, validation reports, or file manifests.
+- Experiment claims point to machine-readable experiment records.
+- Code implementation claims point to scripts/tests/commits.
+- Access blockers point to access notes, license files, request records, or source pages.
+
+If evidence is missing, keep the task in `review`, `blocked`, or `in_progress`, not `done`.
 
 ### Rule 2: every phase must have independent version control
 
@@ -169,6 +253,17 @@ The guard enforces:
 - experiment runs must use `research/experiments/<phase>/<series>/<run_id>/`;
 - experiment runs must have required machine-readable files and be indexed in `research/experiments/index.jsonl`.
 
+If the project has `scripts/project/task_graph.py`, use it to validate and render task views. Before ending any task-management or memory-governance work, this gate must pass:
+
+```bash
+python3 scripts/project/task_graph.py render
+python3 scripts/project/task_graph.py gate
+```
+
+`gate` must fail on warnings such as orphan tasks, missing terminal evidence, active tasks without next actions, blocked tasks without blockers, missing evidence files, missing exit conditions, invalid frontier references, or stale rendered views.
+
+If no task graph tool exists yet, create a minimal one before scaling task management. The v1 tool should validate node ids, statuses, edge endpoints, orphan tasks, terminal-task evidence, and missing evidence files; it should render `task_frontier.md`, `task_index.md`, `tasks/views/`, and `task_board.html`.
+
 ## Governance Layer
 
 ### 1. Audit the workspace before editing
@@ -205,10 +300,39 @@ At minimum, update or create:
 - root `info/project_summary.md`
 - root `info/project_goals.md`
 - root `info/project_architecture.md`
-- root `tasks/task_list.md`
+- root `tasks/task_graph.yaml`
+- root `tasks/task_events.jsonl`
+- root `tasks/task_frontier.md`
+- root `tasks/task_index.md`
+- root `tasks/task_board.html`
+- root `tasks/task_list.md` as a legacy/generated pointer if needed
 - root `tasks/task_progress.md`
 
 These files must describe real facts, not aspirational status.
+
+Minimal task graph node example:
+
+```yaml
+nodes:
+  - id: DATASET-MDPE
+    type: task
+    parent: DATASET
+    title: MDPE P0 archive acquisition and validation
+    status: done
+    priority: P0
+    exit_condition:
+      - expected byte sizes match
+      - zipinfo passes
+      - hashes and structure checks are recorded
+      - registry is updated
+    evidence:
+      - reports/dataset_access_feature_smoke/mdpe_archive_integrity_summary.csv
+    next_action: Use validated archives for bounded feature schema inspection.
+edges:
+  - from: DATASET-MDPE
+    to: FEATURE-MDPE-SCHEMA
+    type: enables
+```
 
 ### 4. Validate governance state
 
@@ -229,7 +353,7 @@ The result should show:
 When implementation work happens in a child repo:
 
 - first update and commit the child repo
-- then update the root repo summary/progress files with the resulting state
+- then update the root task graph, task event log, generated frontier/index views, and summary/progress files with the resulting state
 - root repo entries should answer:
   - what changed
   - which child repo owns it
