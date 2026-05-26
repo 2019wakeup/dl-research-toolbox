@@ -47,7 +47,7 @@ python3 skills/dataset-download-network/scripts/dataset_download_probe.py manife
 python3 skills/dataset-download-network/scripts/dataset_download_probe.py compare official.jsonl mirror.jsonl --mode exact
 ```
 
-5. Save a download record in the project: source URL, platform, command, date, version/revision, proxy mode, manifest/hash result, and any mirror differences.
+5. Save a compact download record in the project: source URL, platform, command, date, version/revision, proxy mode, manifest/hash result, and mirror differences. Prefer one aggregated entry per dataset or run, then attach a manifest path, summary counts, and only a small sample of failures or mismatches when details matter.
 
 ## Command Patterns
 

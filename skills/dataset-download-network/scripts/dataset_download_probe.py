@@ -47,6 +47,8 @@ PROXY_KEYS = [
     "NO_PROXY",
 ]
 
+SUMMARY_SAMPLE_LIMIT = 8
+
 
 def redact_url(value: str) -> str:
     parsed = urlsplit(value)
@@ -86,6 +88,14 @@ def run_command(args: list[str], timeout: int) -> dict:
         }
 
 
+def first_line(text: str) -> str:
+    for line in (text or "").splitlines():
+        line = line.strip()
+        if line:
+            return line
+    return ""
+
+
 def command_version(command: str) -> dict:
     path = shutil.which(command)
     result = {"command": command, "path": path, "available": bool(path)}
@@ -98,6 +108,75 @@ def command_version(command: str) -> dict:
     first = (probe["stdout"] or probe["stderr"]).splitlines()
     result["version"] = first[0] if first else ""
     return result
+
+
+def compact_command(row: dict) -> dict:
+    result = {"command": row["command"], "available": row["available"]}
+    if row.get("version"):
+        result["version"] = row["version"]
+    return result
+
+
+def compact_run(result: dict) -> dict:
+    data = {
+        "returncode": result["returncode"],
+        "seconds": result["seconds"],
+        "ok": result["returncode"] == 0,
+    }
+    note = first_line(result.get("stderr") or result.get("stdout"))
+    if note:
+        data["note"] = note[:200]
+    return data
+
+
+def summarize_probe(report: dict) -> dict:
+    commands = report["commands"]
+    available = [compact_command(row) for row in commands if row["available"]]
+    missing = [row["command"] for row in commands if not row["available"]]
+
+    summary = {
+        "generated_at": report["generated_at"],
+        "python": report["python"],
+        "cwd": report["cwd"],
+        "commands": {
+            "total": len(commands),
+            "available_count": len(available),
+            "missing_count": len(missing),
+            "available_sample": available[:SUMMARY_SAMPLE_LIMIT],
+            "missing_sample": missing[:SUMMARY_SAMPLE_LIMIT],
+        },
+        "proxy_env_keys": sorted(report["proxy_env"].keys()),
+    }
+
+    if report["live"]:
+        proxy_failures = 0
+        direct_failures = 0
+        failure_samples = []
+
+        for row in report["live"]:
+            proxy = compact_run(row["via_env_proxy"])
+            direct = compact_run(row["direct_no_proxy"])
+            if not proxy["ok"]:
+                proxy_failures += 1
+            if not direct["ok"]:
+                direct_failures += 1
+            if not proxy["ok"] or not direct["ok"]:
+                failure_samples.append(
+                    {
+                        "url": row["url"],
+                        "via_env_proxy": proxy,
+                        "direct_no_proxy": direct,
+                    }
+                )
+
+        summary["live"] = {
+            "urls_tested": len(report["live"]),
+            "proxy_failures": proxy_failures,
+            "direct_failures": direct_failures,
+            "failure_samples": failure_samples[:SUMMARY_SAMPLE_LIMIT],
+        }
+
+    return summary
 
 
 def probe(args: argparse.Namespace) -> int:
@@ -132,7 +211,8 @@ def probe(args: argparse.Namespace) -> int:
                 }
             )
 
-    text = json.dumps(report, ensure_ascii=False, indent=2)
+    payload = report if args.format == "full" else summarize_probe(report)
+    text = json.dumps(payload, ensure_ascii=False, indent=2)
     if args.output:
         Path(args.output).write_text(text + "\n", encoding="utf-8")
     print(text)
@@ -248,6 +328,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_probe.add_argument("--live", action="store_true", help="run live curl HEAD checks")
     p_probe.add_argument("--url", action="append", help="URL to probe; can be repeated")
     p_probe.add_argument("--timeout", type=int, default=10)
+    p_probe.add_argument(
+        "--format",
+        choices=["summary", "full"],
+        default="summary",
+        help="write a compact aggregated report or the full raw probe output",
+    )
     p_probe.add_argument("--output")
     p_probe.set_defaults(func=probe)
 
