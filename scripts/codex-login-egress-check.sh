@@ -8,13 +8,16 @@ SOURCE_PROXY=1
 SCAN_LIMIT="${CODEX_LOGIN_SCAN_LIMIT:-120}"
 PROBE_TIMEOUT="${CODEX_LOGIN_PROBE_TIMEOUT:-8}"
 PREFILTER_TIMEOUT="${CODEX_LOGIN_PREFILTER_TIMEOUT:-12}"
+FORCE_DEVICE_PROBE=0
 
 usage() {
   cat <<'USAGE'
 Usage: bash scripts/codex-login-egress-check.sh [check|repair] [options]
 
 Verify or repair the proxy egress used by `codex login --device-auth`.
-This check intentionally captures and redacts device-code output. It may create
+When Codex is already logged in, this check does not run device-code login by
+default because that flow can disturb the active cached session. For logged-out
+sessions, the check captures and redacts device-code output. It may create
 short-lived unused device codes, but it never prints the code.
 
 Actions:
@@ -26,6 +29,7 @@ Options:
   --scan-limit N     Maximum leaf proxies to try in repair mode. Default: 120.
   --probe-timeout S  Seconds to wait for each Codex device-code probe. Default: 8.
   --prefilter-timeout S  Seconds for Cloudflare challenge prefilter. Default: 12.
+  --force-device-probe  Run `codex login --device-auth` even if already logged in.
   --no-source-proxy  Do not source scripts/proxy-on.sh before checks.
   --no-strict        Print failures but exit zero.
   -h, --help         Show this help.
@@ -43,6 +47,7 @@ while [ "$#" -gt 0 ]; do
     --scan-limit) SCAN_LIMIT="${2:-}"; shift 2 ;;
     --probe-timeout) PROBE_TIMEOUT="${2:-}"; shift 2 ;;
     --prefilter-timeout) PREFILTER_TIMEOUT="${2:-}"; shift 2 ;;
+    --force-device-probe) FORCE_DEVICE_PROBE=1; shift ;;
     --no-source-proxy) SOURCE_PROXY=0; shift ;;
     --no-strict) STRICT=0; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -72,6 +77,7 @@ CODEX_LOGIN_STRICT="$STRICT" \
 CODEX_LOGIN_SCAN_LIMIT="$SCAN_LIMIT" \
 CODEX_LOGIN_PROBE_TIMEOUT="$PROBE_TIMEOUT" \
 CODEX_LOGIN_PREFILTER_TIMEOUT="$PREFILTER_TIMEOUT" \
+CODEX_LOGIN_FORCE_DEVICE_PROBE="$FORCE_DEVICE_PROBE" \
 python3 - <<'PY_CODEX_LOGIN_EGRESS'
 import json
 import os
@@ -87,6 +93,7 @@ STRICT = os.environ.get("CODEX_LOGIN_STRICT") == "1"
 SCAN_LIMIT = int(os.environ["CODEX_LOGIN_SCAN_LIMIT"])
 PROBE_TIMEOUT = int(os.environ["CODEX_LOGIN_PROBE_TIMEOUT"])
 PREFILTER_TIMEOUT = int(os.environ["CODEX_LOGIN_PREFILTER_TIMEOUT"])
+FORCE_DEVICE_PROBE = os.environ.get("CODEX_LOGIN_FORCE_DEVICE_PROBE") == "1"
 
 DEVICE_URL = "https://chatgpt.com/backend-api/codex/deviceauth/usercode"
 
@@ -124,6 +131,22 @@ def curl_prefilter() -> tuple[str, str]:
     if proc.returncode != 0:
         return "curl_error", status
     return "not_challenged", status
+
+
+def codex_is_logged_in() -> tuple[bool, str]:
+    cmd = ["codex", "login", "status"]
+    try:
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=8)
+    except FileNotFoundError:
+        return False, "codex not found"
+    except subprocess.TimeoutExpired:
+        return False, "codex login status timed out"
+    cleaned = sanitize(proc.stdout or "")
+    if "Logged in" in cleaned:
+        first = next((line.strip() for line in cleaned.splitlines() if line.strip()), "Logged in")
+        return True, first[:180]
+    first = next((line.strip() for line in cleaned.splitlines() if line.strip()), "not logged in")
+    return False, first[:180]
 
 
 def codex_device_probe() -> tuple[str, str]:
@@ -168,6 +191,11 @@ def check_current(verbose: bool = True) -> tuple[bool, str]:
     pre_state, pre_detail = curl_prefilter()
     if verbose:
         print(f"codex_login_egress: prefilter={pre_state} status={pre_detail}")
+    logged_in, login_detail = codex_is_logged_in()
+    if logged_in and not FORCE_DEVICE_PROBE:
+        if verbose:
+            print_ok(f"Codex is already logged in; skipped device-code probe to preserve auth cache ({login_detail})")
+        return True, "already_logged_in"
     state, detail = codex_device_probe()
     if state == "success":
         if verbose:

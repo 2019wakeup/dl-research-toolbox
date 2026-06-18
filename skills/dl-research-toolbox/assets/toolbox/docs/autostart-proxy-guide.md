@@ -30,9 +30,10 @@ bash scripts/mihomo-autostart.sh status
 
 ```text
 /etc/profile.d/99-dl-research-toolbox-proxy.sh
+~/.bashrc
 ```
 
-之后新登录或新交互 shell 会自动启动 `mihomo`，并自动设置代理变量。
+之后新登录 shell 和新交互 bash 会自动启动 `mihomo`，并自动设置代理变量。
 
 ## AutoDL 容器里的真实边界
 
@@ -42,6 +43,7 @@ bash scripts/mihomo-autostart.sh status
 
 - 新 SSH/login shell 打开时自动启动 `mihomo`；
 - `/etc/profile.d/99-dl-research-toolbox-proxy.sh` 自动设置代理变量；
+- `~/.bashrc` 覆盖非登录交互 bash，例如很多 SSH、tmux 或 AutoDL 终端入口；
 - 从这个 shell 启动的 Codex 和常见 CLI 工具会自动走代理，不需要手动 `source scripts/proxy-on.sh`。
 
 这就是 AutoDL 场景下可实现的“无感自启”。它不能在任何 shell 出现之前提前运行，因为容器本身没有服务管理器。
@@ -62,6 +64,20 @@ Codex ChatGPT 登录还需要额外验证。`api.openai.com` 可达只说明 API
 ```
 
 这个命令会自动扫描 mihomo selector，并切到一个可以请求 Codex device code 的节点。它不会输出真实节点名，也不会打印一次性 device code。
+
+远端/headless 机器优先使用官方 device-code 登录：
+
+```bash
+codex login --device-auth
+```
+
+登录后用官方诊断确认 Codex 自己看到的运行环境：
+
+```bash
+codex doctor --ascii --summary
+```
+
+如果新 shell 的 `codex doctor` 通过，但旧的 Codex TUI 仍然超时，优先怀疑旧进程是在代理 hook 修复前启动的。退出旧 TUI 后重新运行 `codex`。如果提示 app-server、MCP 或 `codex_apps` 相关超时，检查是否有旧的 `codex app-server` 进程没有继承代理环境。
 
 模拟一个干净 login shell：
 

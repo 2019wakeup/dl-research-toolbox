@@ -6,6 +6,7 @@ REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 QUICK=0
 CHECK_PYTHON=1
 CHECK_CODEX_LOGIN=1
+CHECK_CODEX_DOCTOR=1
 REPAIR_CODEX_LOGIN=0
 STRICT=1
 SOURCE_PROXY=1
@@ -18,9 +19,10 @@ Usage: bash scripts/doctor.sh [options]
 Run post-install health checks through one entrypoint.
 
 Options:
-  --quick       Run machine, mihomo, and Codex login egress checks only; skip deep registry checks.
+  --quick       Run machine, mihomo, Codex login egress, and official Codex doctor checks only; skip deep registry checks.
   --no-python   Skip Python research tools import checks in deep mode.
   --no-codex-login  Skip Codex ChatGPT device-code login egress check.
+  --no-codex-doctor  Skip official Codex CLI doctor runtime check.
   --repair-codex-login  Repair mihomo selector for Codex login egress.
   --no-source-proxy  Do not source scripts/proxy-on.sh before checks.
   --no-strict        Print failures but exit zero.
@@ -33,6 +35,7 @@ while [ "$#" -gt 0 ]; do
     --quick) QUICK=1; shift ;;
     --no-python) CHECK_PYTHON=0; shift ;;
     --no-codex-login) CHECK_CODEX_LOGIN=0; shift ;;
+    --no-codex-doctor) CHECK_CODEX_DOCTOR=0; shift ;;
     --repair-codex-login) CHECK_CODEX_LOGIN=1; REPAIR_CODEX_LOGIN=1; shift ;;
     --no-source-proxy) SOURCE_PROXY=0; shift ;;
     --no-strict) STRICT=0; shift ;;
@@ -60,6 +63,14 @@ run_check() {
   echo "$rule"
 }
 
+codex_doctor_check() {
+  if ! command -v codex >/dev/null 2>&1; then
+    echo "codex not found on PATH" >&2
+    return 1
+  fi
+  codex doctor --ascii --summary
+}
+
 cd "$REPO_ROOT"
 if [ "$SOURCE_PROXY" -eq 1 ] && [ -f scripts/proxy-on.sh ]; then
   # shellcheck disable=SC1091
@@ -67,6 +78,9 @@ if [ "$SOURCE_PROXY" -eq 1 ] && [ -f scripts/proxy-on.sh ]; then
 fi
 run_check "machine check" bash scripts/check-machine.sh
 run_check "mihomo proxy check" bash scripts/mihomo-status.sh --strict --test-proxy
+if [ "$CHECK_CODEX_DOCTOR" -eq 1 ]; then
+  run_check "official Codex CLI doctor" codex_doctor_check
+fi
 if [ "$CHECK_CODEX_LOGIN" -eq 1 ]; then
   codex_login_args=(check --no-source-proxy)
   if [ "$REPAIR_CODEX_LOGIN" -eq 1 ]; then

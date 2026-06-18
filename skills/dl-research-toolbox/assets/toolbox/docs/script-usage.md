@@ -101,10 +101,18 @@ Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, no
 
 This command first checks the current selector. If the current node cannot request a Codex device code, it scans mihomo selector candidates and switches to one that can. Output uses candidate indexes instead of real node names, and any generated one-time device code is captured and redacted.
 
+If Codex is already logged in, the check does not run `codex login --device-auth` by default, because the device-code login flow can disturb the active cached session. Use `--force-device-probe` only when you explicitly want to test the login flow itself.
+
 To check without changing selectors:
 
 ```bash
 ./toolbox codex-login check
+```
+
+Force the device-code probe even when already logged in:
+
+```bash
+./toolbox codex-login check --force-device-probe
 ```
 
 To repair with a smaller scan window:
@@ -161,7 +169,7 @@ The real generated config lives in `~/.config/mihomo/config.yaml`. Do not copy t
 
 Immediate start is handled by `mihomo-start.sh`. Persistent startup is handled by `mihomo-autostart.sh`. `network-first-setup.sh` installs persistent startup by default after a successful YAML import.
 
-Autostart installation also refreshes shell proxy environment hooks by default. On root-owned machines this writes `/etc/profile.d/99-dl-research-toolbox-proxy.sh`, so new login or interactive shells start mihomo if needed and export `http_proxy`, `https_proxy`, and `all_proxy` automatically. Use `--no-shell-env` only if you want mihomo to run without changing shell proxy variables.
+Autostart installation also refreshes shell proxy environment hooks by default. On root-owned machines this writes `/etc/profile.d/99-dl-research-toolbox-proxy.sh` and refreshes `~/.bashrc`, so new login shells and interactive bash shells start mihomo if needed and export `http_proxy`, `https_proxy`, and `all_proxy` automatically. Use `--no-shell-env` only if you want mihomo to run without changing shell proxy variables.
 
 Default automatic selection:
 
@@ -191,7 +199,7 @@ bash scripts/mihomo-autostart.sh install --mode profile
 bash scripts/mihomo-autostart.sh status
 ```
 
-In containers where PID 1 is not systemd, profile mode is the available fallback: it cannot run before any shell exists, but it makes SSH/login shells seamless by starting mihomo and enabling proxy variables automatically.
+In containers where PID 1 is not systemd, profile mode is the available fallback: it cannot run before any shell exists, but it makes SSH/login and interactive bash shells seamless by starting mihomo and enabling proxy variables automatically.
 
 Remove all autostart entries:
 
@@ -213,7 +221,7 @@ Quick base check:
 bash scripts/doctor.sh --quick
 ```
 
-The quick doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, and `codex-login-egress-check.sh check`. The full doctor runs those same base checks, then adds `verify-proxy-deep.sh --no-codex-login`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
+The quick doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, `codex doctor --ascii --summary`, and `codex-login-egress-check.sh check`. The full doctor runs those same base checks, then adds `verify-proxy-deep.sh --no-codex-login`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
 
 ## Codex CLI
 
@@ -223,6 +231,26 @@ Install or repair Codex CLI after proxy is available:
 bash scripts/install-codex-cli.sh
 codex --version
 ```
+
+For headless or remote servers, prefer the official device-code login path:
+
+```bash
+codex login --device-auth
+```
+
+After login, use the official local diagnostic before starting long work:
+
+```bash
+codex doctor --ascii --summary
+```
+
+If `codex doctor` reports missing proxy environment, WebSocket timeout, or unreachable provider endpoints, open a new shell or run:
+
+```bash
+source scripts/proxy-on.sh
+```
+
+If an existing Codex TUI was started before proxy hooks were fixed, exit it and start a fresh `codex` process so it inherits the repaired environment. If app-server or MCP errors continue, check for stale `codex app-server` processes that were started before the proxy fix.
 
 The script ensures a modern Node.js is installed, handles Ubuntu Node 12 conflicts, reinstalls broken Codex CLI packages, and persists `~/.local/bin` into shell profiles.
 

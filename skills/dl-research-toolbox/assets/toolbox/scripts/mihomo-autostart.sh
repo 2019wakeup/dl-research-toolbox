@@ -10,6 +10,7 @@ ENABLE_LINGER=0
 AUTO_PROXY_ENV=1
 SERVICE_BASENAME="dl-research-mihomo"
 PROFILE_FILE="${MIHOMO_PROFILE_FILE:-$HOME/.profile}"
+BASHRC_FILE="${MIHOMO_BASHRC_FILE:-$HOME/.bashrc}"
 PROFILED_FILE="${MIHOMO_PROFILED_FILE:-}"
 USER_NAME="$(id -un)"
 MIHOMO_BIN="${MIHOMO_BIN:-$HOME/.local/bin/mihomo}"
@@ -31,7 +32,7 @@ Options:
   --mode auto|system|user|profile  Default: auto.
   --no-start                       Install but do not start mihomo now.
   --enable-linger                  Enable linger for systemd user mode.
-  --no-shell-env                   Do not install automatic shell proxy env hook.
+  --no-shell-env                   Do not install automatic shell proxy env hooks.
   -h, --help                       Show this help.
 
 Examples:
@@ -278,6 +279,14 @@ $(shell_hook_body)
 PROFILED
 }
 
+bashrc_block() {
+  cat <<BASHRC
+# >>> dl-research-toolbox bashrc proxy hook >>>
+$(shell_hook_body)
+# <<< dl-research-toolbox bashrc proxy hook <<<
+BASHRC
+}
+
 remove_marked_block() {
   local file="$1"
   local start="$2"
@@ -327,17 +336,24 @@ uninstall_profile_hook() {
 
 install_shell_env_hook() {
   if [ "$AUTO_PROXY_ENV" -eq 0 ]; then
-    echo "Skipping shell proxy env hook (--no-shell-env)."
+    echo "Skipping shell proxy env hooks (--no-shell-env)."
     return 0
   fi
-  if [ -z "$PROFILED_FILE" ]; then
+  if [ -n "$PROFILED_FILE" ]; then
+    mkdir -p "$(dirname "$PROFILED_FILE")"
+    profiled_block > "$PROFILED_FILE"
+    chmod 0644 "$PROFILED_FILE"
+    echo "Installed/refreshed shell proxy env hook: $PROFILED_FILE"
+  else
     echo "Skipping shell proxy env hook: /etc/profile.d is unavailable or not writable by this user."
-    return 0
   fi
-  mkdir -p "$(dirname "$PROFILED_FILE")"
-  profiled_block > "$PROFILED_FILE"
-  chmod 0644 "$PROFILED_FILE"
-  echo "Installed/refreshed shell proxy env hook: $PROFILED_FILE"
+  touch "$BASHRC_FILE"
+  remove_marked_block "$BASHRC_FILE" '# >>> dl-research-toolbox bashrc proxy hook >>>' '# <<< dl-research-toolbox bashrc proxy hook <<<'
+  {
+    printf '\n'
+    bashrc_block
+  } >> "$BASHRC_FILE"
+  echo "Installed/refreshed bashrc proxy hook: $BASHRC_FILE"
 }
 
 uninstall_shell_env_hook() {
@@ -349,6 +365,8 @@ uninstall_shell_env_hook() {
   else
     echo "Shell proxy env hook path unavailable."
   fi
+  remove_marked_block "$BASHRC_FILE" '# >>> dl-research-toolbox bashrc proxy hook >>>' '# <<< dl-research-toolbox bashrc proxy hook <<<'
+  echo "Removed bashrc proxy hook from: $BASHRC_FILE"
 }
 
 show_status() {
@@ -381,6 +399,11 @@ show_status() {
     echo "shell proxy env hook: missing from $PROFILED_FILE"
   else
     echo "shell proxy env hook: unavailable for this user"
+  fi
+  if [ -f "$BASHRC_FILE" ] && grep -Fq 'dl-research-toolbox bashrc proxy hook' "$BASHRC_FILE"; then
+    echo "bashrc proxy hook: installed in $BASHRC_FILE"
+  else
+    echo "bashrc proxy hook: missing from $BASHRC_FILE"
   fi
   bash "$SCRIPT_DIR/mihomo-status.sh" --test-proxy --no-log || true
 }

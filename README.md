@@ -83,9 +83,10 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml --dry-run
 
 - 给操作者看的说明：[docs/autostart-proxy-guide.md](docs/autostart-proxy-guide.md)
 - 给 Codex/自动化看的运行手册：[docs/autostart-proxy-machine-guide.md](docs/autostart-proxy-machine-guide.md)
+- Codex 远端运行问题复盘：[docs/codex-remote-runtime-postmortem.md](docs/codex-remote-runtime-postmortem.md)
 - 架构评审和命令面优化记录：[docs/architecture-review.md](docs/architecture-review.md)
 
-正常 systemd 机器会安装真正的 system/user service。AutoDL 这类没有 systemd 的容器会使用 profile/profile.d fallback：新 SSH/login shell 自动启动 mihomo，并自动设置 `http_proxy`、`https_proxy`、`all_proxy` 等变量。
+正常 systemd 机器会安装真正的 system/user service。AutoDL 这类没有 systemd 的容器会使用 profile/profile.d/bashrc fallback：新 SSH/login shell 和交互 bash 自动启动 mihomo，并自动设置 `http_proxy`、`https_proxy`、`all_proxy` 等变量。
 
 ## 统一入口
 
@@ -190,6 +191,9 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 # 只检查当前出口，不自动切节点。
 ./toolbox codex-login check
 
+# 按官方 Codex 诊断检查认证、WebSocket、provider reachability、app-server。
+codex doctor --ascii --summary
+
 # 安装/更新仓库内打包的 Codex skills。
 ./toolbox skills
 
@@ -289,7 +293,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 - `install.sh`：新机器配置主入口。
 - `scripts/install-codex-skills.sh`：把仓库内打包的 Codex skills 同步到 `~/.codex/skills/`。
 - `scripts/check-codex-sandbox.sh`：检查 Codex Linux sandbox 的 `bubblewrap` 前置项和容器 namespace 能力。
-- `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境，并检查 Codex device-code 登录出口）。
+- `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境，检查 Codex device-code 登录出口，并运行官方 `codex doctor`）。
 - `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
 - `scripts/web-ui.sh`：远端本地 Web 控制台入口，通过 SSH 端口转发访问。
@@ -326,7 +330,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |   `-- research-tools.txt             # 精简通用 Python 科研工具层
 |-- scripts/
 |   |-- network-first-setup.sh         # 网络优先底层入口
-|   |-- doctor.sh                      # 统一体检入口（默认自动启用本地代理环境）
+|   |-- doctor.sh                      # 统一体检入口（默认自动启用本地代理环境和官方 Codex doctor）
 |   |-- web-tunnel.sh                  # 本地侧 SSH tunnel helper
 |   |-- web-ui.sh                      # 远端本地 Web 控制台启动器
 |   |-- toolbox-web.py                 # Web 控制台后端（Python 标准库）
@@ -353,6 +357,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |   |-- script-usage.md                # 安装后脚本使用教程
 |   |-- autostart-proxy-guide.md       # 给操作者看的 mihomo 自启和代理指南
 |   |-- autostart-proxy-machine-guide.md # 给 Codex/自动化看的自启维护手册
+|   |-- codex-remote-runtime-postmortem.md # Codex 远端运行问题复盘
 |   |-- architecture-review.md         # 架构评审、方案比较和统一 CLI 设计记录
 |   |-- migration-engineering-notes.md # 迁移问题和处理规则
 |   `-- security.md                    # 敏感信息排除和推送前检查
