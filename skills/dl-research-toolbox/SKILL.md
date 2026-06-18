@@ -1,6 +1,6 @@
 ---
 name: dl-research-toolbox
-description: Build, install, update, or maintain a project-independent deep learning research machine toolbox. Use when setting up a new Linux/GPU research machine; packaging reusable DL research environment tooling; installing generic CLI tools such as gh, npm, uv, tmux, rg, jq, and git-lfs; configuring mihomo/Clash subscription import and proxy checks; or auditing that the toolbox excludes project code, datasets, checkpoints, conda, PyTorch, CUDA wheels, secrets, and real proxy credentials.
+description: Build, install, update, or maintain a project-independent deep learning research machine toolbox. Use when setting up a new Linux/GPU research machine; packaging reusable DL research environment tooling; installing generic CLI tools such as gh, npm, uv, tmux, rg, jq, and git-lfs; configuring mihomo/Clash subscription import, proxy checks, and Codex CLI device-code login egress checks; or auditing that the toolbox excludes project code, datasets, checkpoints, conda, PyTorch, CUDA wheels, secrets, and real proxy credentials.
 ---
 
 # DL Research Toolbox
@@ -42,7 +42,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 3. Prefer the top-level entrypoint with a local YAML file: `bash install.sh --mihomo-yaml /path/to/mihomo.yaml`. It installs/configures mihomo first, imports local Clash/Mihomo YAML, installs mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI plus the Linux `bubblewrap` sandbox prerequisite, runs full bootstrap through the proxy, then runs `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
 4. Use `bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap` when the user wants only proxy setup first.
 5. Use `bash scripts/bootstrap.sh --dry-run` only for inspection, or after proxy is known working.
-6. Validate with `bash scripts/doctor.sh`; use `bash scripts/doctor.sh --quick` for proxy-only validation. If controller/listeners are healthy but egress fails, run `bash scripts/mihomo-select-best.sh` to switch selector groups to a reachable node without logging real node names.
+6. Validate with `bash scripts/doctor.sh`; use `bash scripts/doctor.sh --quick` for the base machine, mihomo, and Codex ChatGPT device-code login egress checks. If controller/listeners are healthy but normal egress fails, run `bash scripts/mihomo-select-best.sh` to switch selector groups to a reachable node without logging real node names. If Codex login reports `403 Forbidden` or cannot request a device code, run `./toolbox codex-ready` or `bash scripts/codex-login-egress-check.sh repair` to find a selector that can reach the Codex login endpoint.
 7. Treat persistent proxy startup as the default after network-first setup. For manual repair, use `bash scripts/mihomo-autostart.sh install --mode auto --enable-linger`; use explicit `--mode system`, `--mode user --enable-linger`, or `--mode profile` only when appropriate.
 8. For SSH-forwarded monitoring/control, prefer local-side `bash scripts/web-tunnel.sh`; its first run asks for the SSH target and saves a local profile. Use `bash scripts/web-tunnel.sh --target user@server --ssh-port PORT --remote-dir '~/dl-research-toolbox' --save-profile` for non-interactive setup, and remote-side `bash scripts/web-ui.sh --port 8765` only as the manual fallback.
 9. When the repository is used as a Codex skill bundle, run `bash scripts/install-codex-skills.sh` from the repo to sync bundled skills into `${CODEX_HOME:-$HOME/.codex}/skills`.
@@ -57,7 +57,7 @@ bash <skill-dir>/scripts/install_toolbox.sh --from-git --path ~/dl-research-tool
 - `scripts/install_toolbox.sh`: materializes this skill's bundled toolbox asset or clones/updates the GitHub repo; use `--network-first --mihomo-file PATH` for direct setup, or run the generated toolbox's `install.sh`.
 - `assets/toolbox/`: self-contained copy of the lightweight toolbox template.
 - `references/toolbox-scope.md`: package scope, included tools, and exclusions.
-- `references/networking.md`: mihomo import, autostart, listener checks, and proxy validation notes.
+- `references/networking.md`: mihomo import, autostart, listener checks, proxy validation, and Codex login egress notes.
 - `references/migration-engineering-notes.md`: migration failure modes and fixes to remember.
 - Repository sibling skills: `dataset-download-network`, `remote-project-memory`, `research-version-isolation`, and `deep-learning-research` provide dataset download diagnostics, project memory, version isolation, experiment contracts, and hook enforcement for actual research repositories.
 

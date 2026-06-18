@@ -2,21 +2,36 @@
 
 This guide covers the scripts you normally use after installing the toolbox on a new machine. Commands assume you are in the toolbox directory.
 
-## One-command setup
+## Unified entrypoint
 
-Use the top-level wrapper on a fresh machine. It detects `./mihomo.yaml` or `~/mihomo.yaml` automatically, or accepts an explicit path. It runs network-first setup and then `scripts/doctor.sh`.
+Prefer the root `./toolbox` command for day-to-day use. It keeps the common tasks discoverable while preserving the lower-level scripts for debugging and automation.
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml
+./toolbox help
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml
+./toolbox status
+./toolbox doctor
+./toolbox check
+./toolbox codex-ready
+./toolbox mihomo restart
+./toolbox autostart
+```
+
+## One-command setup
+
+Use the unified wrapper on a fresh machine. It detects `./mihomo.yaml` or `~/mihomo.yaml` automatically, or accepts an explicit path. It runs network-first setup and then `scripts/doctor.sh`.
+
+```bash
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml
 ```
 
 Common variants:
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --replace-running
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --dry-run
+./toolbox proxy-only --mihomo-yaml /path/to/mihomo.yaml
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --replace-running
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --dry-run
 ```
 
 ## Network-first setup
@@ -76,6 +91,28 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 
 The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and inspect autostart status. It binds to `127.0.0.1` by default and does not require HTTP tunneling.
 
+## Codex login egress
+
+Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, not only `api.openai.com`. A proxy node can pass OpenAI API checks while still returning `403 Forbidden` for the device-code login endpoint. `doctor.sh` and `./toolbox check` include this egress check by default. Before logging in, or after changing/restarting mihomo, run:
+
+```bash
+./toolbox codex-ready
+```
+
+This command first checks the current selector. If the current node cannot request a Codex device code, it scans mihomo selector candidates and switches to one that can. Output uses candidate indexes instead of real node names, and any generated one-time device code is captured and redacted.
+
+To check without changing selectors:
+
+```bash
+./toolbox codex-login check
+```
+
+To repair with a smaller scan window:
+
+```bash
+./toolbox codex-login repair --scan-limit 40
+```
+
 ## Proxy session commands
 
 ```bash
@@ -124,6 +161,8 @@ The real generated config lives in `~/.config/mihomo/config.yaml`. Do not copy t
 
 Immediate start is handled by `mihomo-start.sh`. Persistent startup is handled by `mihomo-autostart.sh`. `network-first-setup.sh` installs persistent startup by default after a successful YAML import.
 
+Autostart installation also refreshes shell proxy environment hooks by default. On root-owned machines this writes `/etc/profile.d/99-dl-research-toolbox-proxy.sh`, so new login or interactive shells start mihomo if needed and export `http_proxy`, `https_proxy`, and `all_proxy` automatically. Use `--no-shell-env` only if you want mihomo to run without changing shell proxy variables.
+
 Default automatic selection:
 
 ```bash
@@ -152,6 +191,8 @@ bash scripts/mihomo-autostart.sh install --mode profile
 bash scripts/mihomo-autostart.sh status
 ```
 
+In containers where PID 1 is not systemd, profile mode is the available fallback: it cannot run before any shell exists, but it makes SSH/login shells seamless by starting mihomo and enabling proxy variables automatically.
+
 Remove all autostart entries:
 
 ```bash
@@ -166,13 +207,13 @@ Unified post-install check. It sources `scripts/proxy-on.sh` by default:
 bash scripts/doctor.sh
 ```
 
-Quick proxy-only check:
+Quick base check:
 
 ```bash
 bash scripts/doctor.sh --quick
 ```
 
-The full doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, and `verify-proxy-deep.sh`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
+The quick doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, and `codex-login-egress-check.sh check`. The full doctor runs those same base checks, then adds `verify-proxy-deep.sh --no-codex-login`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
 
 ## Codex CLI
 
@@ -197,6 +238,30 @@ The check distinguishes two cases:
 - `bwrap: Creating new namespace failed: Operation not permitted`: `bubblewrap` is installed, but the host/container policy blocks namespace creation. The PATH prerequisite is fixed; full sandbox execution requires container runtime or host permission changes.
 
 Reference: [OpenAI Codex sandbox prerequisites](https://developers.openai.com/codex/concepts/sandboxing#prerequisites).
+
+## Codex skills
+
+Install or update the Codex skills bundled in this repository:
+
+```bash
+bash scripts/install-codex-skills.sh
+```
+
+List bundled skills or install only one:
+
+```bash
+bash scripts/install-codex-skills.sh --list
+bash scripts/install-codex-skills.sh --skill dataset-download-network
+bash scripts/install-codex-skills.sh --skill research-version-isolation
+```
+
+For a research project repository, install the executable memory/version guard:
+
+```bash
+bash skills/research-version-isolation/scripts/install_research_hooks.sh /path/to/research-repo
+```
+
+Use `dataset-download-network` when a project needs reliable Hugging Face, ModelScope, OpenXLab, Kaggle, Git LFS, DVC/DataLad, rclone, or HTTP mirror downloads. The research guard enforces a single root memory source, upward task sync for child/domain changes, and classified experiment logs under `research/experiments/<phase>/<series>/<run_id>/`.
 
 ## Bootstrap
 
@@ -244,6 +309,8 @@ make web
 make network-first
 make check
 make proxy-deep-check
+make install-skills
+make skills-list
 make mihomo-start
 make mihomo-check
 make mihomo-autostart

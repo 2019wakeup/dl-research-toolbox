@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+usage() {
+  cat <<'USAGE'
+DL Research Toolbox
+
+Usage:
+  ./toolbox <command> [args]
+
+Core workflow:
+  setup [install opts]       Fresh-machine setup; forwards to install.sh.
+  proxy-only [install opts]  Configure proxy, autostart, and Codex CLI only.
+  doctor [doctor opts]       Full post-install health check.
+  check [doctor opts]        Quick health check.
+  status                    Show mihomo/autostart/proxy status.
+  codex-ready               Repair proxy selection for Codex device-code login.
+
+Network:
+  mihomo <subcommand> [args] Manage mihomo.
+    install | import | start | stop | restart | status | check | best
+  autostart [args]          Install/repair autostart by default.
+  env [show|exports|on|off] Inspect or print proxy environment helpers.
+  codex-login [check|repair] Verify or repair Codex ChatGPT login egress.
+
+Tools:
+  web [args]                Start the remote local Web UI.
+  web-tunnel [args]         Start local SSH tunnel helper.
+  skills [args]             Install/list bundled Codex skills.
+  bootstrap [args]          Run general machine bootstrap.
+  docs                      Print the main operator docs.
+
+Examples:
+  ./toolbox setup --mihomo-yaml /root/mihomo.yaml
+  ./toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
+  ./toolbox status
+  ./toolbox doctor
+  ./toolbox codex-ready
+  ./toolbox mihomo restart
+  ./toolbox autostart
+USAGE
+}
+
+die() {
+  echo "error: $*" >&2
+  echo >&2
+  usage >&2
+  exit 2
+}
+
+need_arg() {
+  local name="$1"
+  local value="${2:-}"
+  if [ -z "$value" ]; then
+    die "$name requires an argument"
+  fi
+}
+
+show_docs() {
+  cat <<'DOCS'
+Primary docs:
+  README.md
+  docs/new-machine.md
+  docs/script-usage.md
+  docs/autostart-proxy-guide.md
+  docs/autostart-proxy-machine-guide.md
+  docs/architecture-review.md
+
+Security:
+  docs/security.md
+DOCS
+}
+
+show_env() {
+  cat <<ENVINFO
+Proxy environment in this shell:
+  http_proxy=${http_proxy:-}
+  https_proxy=${https_proxy:-}
+  all_proxy=${all_proxy:-}
+  HTTP_PROXY=${HTTP_PROXY:-}
+  HTTPS_PROXY=${HTTPS_PROXY:-}
+  ALL_PROXY=${ALL_PROXY:-}
+  no_proxy=${no_proxy:-}
+  NO_PROXY=${NO_PROXY:-}
+
+To enable proxy variables in the current shell:
+  source scripts/proxy-on.sh
+
+To remove them from the current shell:
+  source scripts/proxy-off.sh
+
+For auto-enabled new shells:
+  ./toolbox autostart
+ENVINFO
+}
+
+print_env_exports() {
+  local host="${PROXY_HOST:-127.0.0.1}"
+  local port="${PROXY_PORT:-7890}"
+  local no_proxy_value="${NO_PROXY_VALUE:-localhost,127.0.0.1,::1}"
+  local proxy_url="http://${host}:${port}"
+  cat <<EXPORTS
+export http_proxy="$proxy_url"
+export https_proxy="$proxy_url"
+export HTTP_PROXY="$proxy_url"
+export HTTPS_PROXY="$proxy_url"
+export all_proxy="$proxy_url"
+export ALL_PROXY="$proxy_url"
+export no_proxy="$no_proxy_value"
+export NO_PROXY="$no_proxy_value"
+EXPORTS
+}
+
+cmd="${1:-help}"
+if [ "$#" -gt 0 ]; then
+  shift
+fi
+
+case "$cmd" in
+  help|-h|--help)
+    usage
+    ;;
+
+  setup|install)
+    exec bash install.sh "$@"
+    ;;
+
+  proxy-only|network-first)
+    exec bash install.sh --no-bootstrap "$@"
+    ;;
+
+  doctor)
+    exec bash scripts/doctor.sh "$@"
+    ;;
+
+  check)
+    exec bash scripts/doctor.sh --quick "$@"
+    ;;
+
+  status)
+    exec bash scripts/mihomo-autostart.sh status "$@"
+    ;;
+
+  codex-ready)
+    exec bash scripts/codex-login-egress-check.sh repair "$@"
+    ;;
+
+  codex-login)
+    if [ "$#" -eq 0 ]; then
+      exec bash scripts/codex-login-egress-check.sh check
+    fi
+    exec bash scripts/codex-login-egress-check.sh "$@"
+    ;;
+
+  deep-check|proxy-deep-check)
+    exec bash scripts/verify-proxy-deep.sh "$@"
+    ;;
+
+  bootstrap)
+    exec bash scripts/bootstrap.sh "$@"
+    ;;
+
+  skills)
+    exec bash scripts/install-codex-skills.sh "$@"
+    ;;
+
+  web)
+    exec bash scripts/web-ui.sh "$@"
+    ;;
+
+  web-tunnel)
+    exec bash scripts/web-tunnel.sh "$@"
+    ;;
+
+  autostart)
+    if [ "$#" -eq 0 ]; then
+      exec bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
+    fi
+    exec bash scripts/mihomo-autostart.sh "$@"
+    ;;
+
+  env)
+    sub="${1:-show}"
+    case "$sub" in
+      show|status)
+        show_env
+        ;;
+      exports)
+        print_env_exports
+        ;;
+      on)
+        echo "Run this in your current shell:"
+        echo "  source scripts/proxy-on.sh"
+        ;;
+      off)
+        echo "Run this in your current shell:"
+        echo "  source scripts/proxy-off.sh"
+        ;;
+      *)
+        die "unknown env subcommand: $sub"
+        ;;
+    esac
+    ;;
+
+  mihomo)
+    sub="${1:-}"
+    need_arg "mihomo" "$sub"
+    shift
+    case "$sub" in
+      install)
+        exec bash scripts/mihomo-install.sh "$@"
+        ;;
+      import)
+        exec bash scripts/mihomo-import-subscription.sh "$@"
+        ;;
+      start)
+        exec bash scripts/mihomo-start.sh "$@"
+        ;;
+      stop)
+        exec bash scripts/mihomo-stop.sh "$@"
+        ;;
+      restart)
+        bash scripts/mihomo-stop.sh "$@" || true
+        exec bash scripts/mihomo-start.sh
+        ;;
+      status)
+        exec bash scripts/mihomo-status.sh "$@"
+        ;;
+      check)
+        exec bash scripts/mihomo-status.sh --strict --test-proxy "$@"
+        ;;
+      best|select-best)
+        exec bash scripts/mihomo-select-best.sh "$@"
+        ;;
+      *)
+        die "unknown mihomo subcommand: $sub"
+        ;;
+    esac
+    ;;
+
+  docs)
+    show_docs
+    ;;
+
+  *)
+    die "unknown command: $cmd"
+    ;;
+esac

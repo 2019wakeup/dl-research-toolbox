@@ -1,60 +1,81 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: setup doctor web web-tunnel bootstrap bootstrap-dry-run network-first check codex-sandbox-check proxy-deep-check mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-select-best mihomo-autostart mihomo-autostart-status
+.PHONY: help setup proxy-only doctor status codex-ready codex-login-check web web-tunnel bootstrap bootstrap-dry-run network-first check codex-sandbox-check proxy-deep-check install-skills skills-list mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-select-best mihomo-autostart mihomo-autostart-status
+
+help:
+	./toolbox help
 
 setup:
-	bash install.sh
+	./toolbox setup
+
+proxy-only:
+	./toolbox proxy-only
 
 doctor:
-	bash scripts/doctor.sh
+	./toolbox doctor
+
+status:
+	./toolbox status
+
+codex-ready:
+	./toolbox codex-ready
+
+codex-login-check:
+	./toolbox codex-login check
 
 web:
-	bash scripts/web-ui.sh
+	./toolbox web
 
 web-tunnel:
-	bash scripts/web-tunnel.sh
+	./toolbox web-tunnel
 
 bootstrap:
-	bash scripts/bootstrap.sh
+	./toolbox bootstrap
 
 bootstrap-dry-run:
-	bash scripts/bootstrap.sh --dry-run
+	./toolbox bootstrap --dry-run
 
 network-first:
-	bash scripts/network-first-setup.sh
+	./toolbox proxy-only
 
 check:
-	bash scripts/check-machine.sh
+	./toolbox check
 
 codex-sandbox-check:
 	bash scripts/check-codex-sandbox.sh
 
 proxy-deep-check:
-	bash scripts/verify-proxy-deep.sh
+	./toolbox deep-check
+
+install-skills:
+	./toolbox skills
+
+skills-list:
+	./toolbox skills --list
 
 mihomo-install:
-	bash scripts/mihomo-install.sh
+	./toolbox mihomo install
 
 mihomo-import:
-	bash scripts/mihomo-import-subscription.sh
+	./toolbox mihomo import
 
 mihomo-start:
-	bash scripts/mihomo-start.sh
+	./toolbox mihomo start
 
 mihomo-stop:
-	bash scripts/mihomo-stop.sh
+	./toolbox mihomo stop
 
 mihomo-status:
-	bash scripts/mihomo-status.sh
+	./toolbox mihomo status
 
 mihomo-check:
-	bash scripts/mihomo-status.sh --strict --test-proxy
+	./toolbox mihomo check
 
 mihomo-select-best:
-	bash scripts/mihomo-select-best.sh
+	./toolbox mihomo best
 
 mihomo-autostart:
-	bash scripts/mihomo-autostart.sh install
+	./toolbox autostart
 
 mihomo-autostart-status:
-	bash scripts/mihomo-autostart.sh status
+	./toolbox autostart status

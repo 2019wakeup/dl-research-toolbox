@@ -2,12 +2,15 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 ACTION="install"
 MODE="auto"
 START_NOW=1
 ENABLE_LINGER=0
+AUTO_PROXY_ENV=1
 SERVICE_BASENAME="dl-research-mihomo"
 PROFILE_FILE="${MIHOMO_PROFILE_FILE:-$HOME/.profile}"
+PROFILED_FILE="${MIHOMO_PROFILED_FILE:-}"
 USER_NAME="$(id -un)"
 MIHOMO_BIN="${MIHOMO_BIN:-$HOME/.local/bin/mihomo}"
 MIHOMO_CONFIG_DIR="${MIHOMO_CONFIG_DIR:-$HOME/.config/mihomo}"
@@ -28,6 +31,7 @@ Options:
   --mode auto|system|user|profile  Default: auto.
   --no-start                       Install but do not start mihomo now.
   --enable-linger                  Enable linger for systemd user mode.
+  --no-shell-env                   Do not install automatic shell proxy env hook.
   -h, --help                       Show this help.
 
 Examples:
@@ -44,6 +48,7 @@ while [ "$#" -gt 0 ]; do
     --mode) MODE="${2:-}"; shift 2 ;;
     --no-start) START_NOW=0; shift ;;
     --enable-linger) ENABLE_LINGER=1; shift ;;
+    --no-shell-env) AUTO_PROXY_ENV=0; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -53,6 +58,10 @@ case "$MODE" in
   auto|system|user|profile) ;;
   *) echo "Invalid --mode: $MODE" >&2; exit 2 ;;
 esac
+
+if [ -z "$PROFILED_FILE" ] && [ "$(id -u)" -eq 0 ] && [ -d /etc/profile.d ]; then
+  PROFILED_FILE="/etc/profile.d/99-dl-research-toolbox-proxy.sh"
+fi
 
 sudo_cmd() {
   if [ "$(id -u)" -eq 0 ]; then
@@ -221,40 +230,70 @@ uninstall_user_service() {
   echo "Removed systemd user service: $(user_service_file)"
 }
 
+shell_hook_body() {
+  cat <<PROFILE
+# Keep dl-research-toolbox mihomo and proxy variables available for Codex/research shells.
+DL_RESEARCH_TOOLBOX_DIR="$REPO_ROOT"
+for _dl_toolbox_dir in "\$DL_RESEARCH_TOOLBOX_DIR" "\$HOME/autodl-tmp/projects/dl-research-toolbox" "\$HOME/dl-research-toolbox"; do
+  if [ -x "\$_dl_toolbox_dir/scripts/mihomo-start.sh" ]; then
+    DL_RESEARCH_TOOLBOX_DIR="\$_dl_toolbox_dir"
+    break
+  fi
+done
+
+if [ -x "\$DL_RESEARCH_TOOLBOX_DIR/scripts/mihomo-start.sh" ]; then
+  bash "\$DL_RESEARCH_TOOLBOX_DIR/scripts/mihomo-start.sh" >/dev/null 2>&1 || true
+fi
+
+if [ -f "\$DL_RESEARCH_TOOLBOX_DIR/scripts/proxy-on.sh" ]; then
+  . "\$DL_RESEARCH_TOOLBOX_DIR/scripts/proxy-on.sh" >/dev/null 2>&1 || true
+else
+  export http_proxy="http://127.0.0.1:7890"
+  export https_proxy="http://127.0.0.1:7890"
+  export HTTP_PROXY="http://127.0.0.1:7890"
+  export HTTPS_PROXY="http://127.0.0.1:7890"
+  export all_proxy="http://127.0.0.1:7890"
+  export ALL_PROXY="http://127.0.0.1:7890"
+  export no_proxy="localhost,127.0.0.1,::1"
+  export NO_PROXY="localhost,127.0.0.1,::1"
+fi
+
+unset _dl_toolbox_dir DL_RESEARCH_TOOLBOX_DIR
+PROFILE
+}
+
 profile_block() {
   cat <<PROFILE
 # >>> dl-research-toolbox mihomo autostart >>>
-if [ -x "$SCRIPT_DIR/mihomo-start.sh" ]; then
-  bash "$SCRIPT_DIR/mihomo-start.sh" >/dev/null 2>&1 || true
-fi
+$(shell_hook_body)
 # <<< dl-research-toolbox mihomo autostart <<<
 PROFILE
 }
 
-install_profile_hook() {
-  require_mihomo_ready
-  touch "$PROFILE_FILE"
-  if grep -Fq 'dl-research-toolbox mihomo autostart' "$PROFILE_FILE"; then
-    echo "Profile autostart hook already exists: $PROFILE_FILE"
-  else
-    {
-      printf '\n'
-      profile_block
-    } >> "$PROFILE_FILE"
-    echo "Installed profile autostart hook: $PROFILE_FILE"
-  fi
-  if [ "$START_NOW" -eq 1 ]; then bash "$SCRIPT_DIR/mihomo-start.sh"; fi
+profiled_block() {
+  cat <<PROFILED
+# >>> dl-research-toolbox shell proxy hook >>>
+$(shell_hook_body)
+# <<< dl-research-toolbox shell proxy hook <<<
+PROFILED
 }
 
-uninstall_profile_hook() {
-  if [ -f "$PROFILE_FILE" ]; then
-    python3 - "$PROFILE_FILE" <<'PY_AUTOSTART_REMOVE'
+remove_marked_block() {
+  local file="$1"
+  local start="$2"
+  local end="$3"
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+  python3 - "$file" "$start" "$end" <<'PY_REMOVE_MARKED_BLOCK'
 from pathlib import Path
 import sys
+
 p = Path(sys.argv[1])
+start = sys.argv[2]
+end = sys.argv[3]
 s = p.read_text()
-start = '# >>> dl-research-toolbox mihomo autostart >>>'
-end = '# <<< dl-research-toolbox mihomo autostart <<<'
+changed = False
 while start in s and end in s:
     a = s.index(start)
     b = s.index(end, a) + len(end)
@@ -263,10 +302,53 @@ while start in s and end in s:
     if b < len(s) and s[b:b+1] == '\n':
         b += 1
     s = s[:a] + s[b:]
-p.write_text(s)
-PY_AUTOSTART_REMOVE
-  fi
+    changed = True
+if changed:
+    p.write_text(s)
+PY_REMOVE_MARKED_BLOCK
+}
+
+install_profile_hook() {
+  require_mihomo_ready
+  touch "$PROFILE_FILE"
+  remove_marked_block "$PROFILE_FILE" '# >>> dl-research-toolbox mihomo autostart >>>' '# <<< dl-research-toolbox mihomo autostart <<<'
+  {
+    printf '\n'
+    profile_block
+  } >> "$PROFILE_FILE"
+  echo "Installed/refreshed profile autostart hook: $PROFILE_FILE"
+  if [ "$START_NOW" -eq 1 ]; then bash "$SCRIPT_DIR/mihomo-start.sh"; fi
+}
+
+uninstall_profile_hook() {
+  remove_marked_block "$PROFILE_FILE" '# >>> dl-research-toolbox mihomo autostart >>>' '# <<< dl-research-toolbox mihomo autostart <<<'
   echo "Removed profile autostart hook from: $PROFILE_FILE"
+}
+
+install_shell_env_hook() {
+  if [ "$AUTO_PROXY_ENV" -eq 0 ]; then
+    echo "Skipping shell proxy env hook (--no-shell-env)."
+    return 0
+  fi
+  if [ -z "$PROFILED_FILE" ]; then
+    echo "Skipping shell proxy env hook: /etc/profile.d is unavailable or not writable by this user."
+    return 0
+  fi
+  mkdir -p "$(dirname "$PROFILED_FILE")"
+  profiled_block > "$PROFILED_FILE"
+  chmod 0644 "$PROFILED_FILE"
+  echo "Installed/refreshed shell proxy env hook: $PROFILED_FILE"
+}
+
+uninstall_shell_env_hook() {
+  if [ -n "$PROFILED_FILE" ] && [ -f "$PROFILED_FILE" ] && grep -Fq 'dl-research-toolbox shell proxy hook' "$PROFILED_FILE"; then
+    rm -f "$PROFILED_FILE"
+    echo "Removed shell proxy env hook: $PROFILED_FILE"
+  elif [ -n "$PROFILED_FILE" ]; then
+    echo "Shell proxy env hook missing from: $PROFILED_FILE"
+  else
+    echo "Shell proxy env hook path unavailable."
+  fi
 }
 
 show_status() {
@@ -293,15 +375,22 @@ show_status() {
   else
     echo "profile hook: missing from $PROFILE_FILE"
   fi
+  if [ -n "$PROFILED_FILE" ] && [ -f "$PROFILED_FILE" ] && grep -Fq 'dl-research-toolbox shell proxy hook' "$PROFILED_FILE"; then
+    echo "shell proxy env hook: installed in $PROFILED_FILE"
+  elif [ -n "$PROFILED_FILE" ]; then
+    echo "shell proxy env hook: missing from $PROFILED_FILE"
+  else
+    echo "shell proxy env hook: unavailable for this user"
+  fi
   bash "$SCRIPT_DIR/mihomo-status.sh" --test-proxy --no-log || true
 }
 
 case "$ACTION" in
   install)
     case "$MODE" in
-      system) install_system_service ;;
-      user) install_user_service ;;
-      profile) install_profile_hook ;;
+      system) install_system_service; install_shell_env_hook ;;
+      user) install_user_service; install_shell_env_hook ;;
+      profile) install_profile_hook; install_shell_env_hook ;;
       auto)
         if can_install_system_service; then
           install_system_service
@@ -315,6 +404,7 @@ case "$ACTION" in
           fi
           install_profile_hook
         fi
+        install_shell_env_hook
         ;;
     esac
     ;;
@@ -322,6 +412,7 @@ case "$ACTION" in
     uninstall_system_service
     uninstall_user_service
     uninstall_profile_hook
+    uninstall_shell_env_hook
     ;;
   status)
     show_status
