@@ -2,21 +2,35 @@
 
 This guide covers the scripts you normally use after installing the toolbox on a new machine. Commands assume you are in the toolbox directory.
 
-## One-command setup
+## Unified entrypoint
 
-Use the top-level wrapper on a fresh machine. It detects `./mihomo.yaml` or `~/mihomo.yaml` automatically, or accepts an explicit path. It runs network-first setup and then `scripts/doctor.sh`.
+Prefer the root `./toolbox` command for day-to-day use. It keeps the common tasks discoverable while preserving the lower-level scripts for debugging and automation.
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml
+./toolbox help
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml
+./toolbox status
+./toolbox doctor
+./toolbox check
+./toolbox mihomo restart
+./toolbox autostart
+```
+
+## One-command setup
+
+Use the unified wrapper on a fresh machine. It detects `./mihomo.yaml` or `~/mihomo.yaml` automatically, or accepts an explicit path. It runs network-first setup and then `scripts/doctor.sh`.
+
+```bash
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml
 ```
 
 Common variants:
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --replace-running
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --dry-run
+./toolbox proxy-only --mihomo-yaml /path/to/mihomo.yaml
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --replace-running
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
+./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --dry-run
 ```
 
 ## Network-first setup

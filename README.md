@@ -17,19 +17,19 @@
 ```bash
 git clone https://github.com/2019wakeup/dl-research-toolbox.git
 cd dl-research-toolbox
-bash install.sh --mihomo-yaml /root/mihomo.yaml
+./toolbox setup --mihomo-yaml /root/mihomo.yaml
 ```
 
 如果你把配置文件命名为 `mihomo.yaml` 并放在仓库目录或 `$HOME` 下，可以省掉参数：
 
 ```bash
-bash install.sh
+./toolbox setup
 ```
 
-install.sh 默认会做统一体检；需要复查时运行：
+`./toolbox setup` 默认会做统一体检；需要复查时运行：
 
 ```bash
-bash scripts/doctor.sh
+./toolbox doctor
 ```
 
 ## 准备 mihomo YAML
@@ -83,8 +83,27 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml --dry-run
 
 - 给操作者看的说明：[docs/autostart-proxy-guide.md](docs/autostart-proxy-guide.md)
 - 给 Codex/自动化看的运行手册：[docs/autostart-proxy-machine-guide.md](docs/autostart-proxy-machine-guide.md)
+- 架构评审和命令面优化记录：[docs/architecture-review.md](docs/architecture-review.md)
 
 正常 systemd 机器会安装真正的 system/user service。AutoDL 这类没有 systemd 的容器会使用 profile/profile.d fallback：新 SSH/login shell 自动启动 mihomo，并自动设置 `http_proxy`、`https_proxy`、`all_proxy` 等变量。
+
+## 统一入口
+
+新用户优先使用根目录的 `./toolbox`：
+
+```bash
+./toolbox help
+./toolbox setup --mihomo-yaml /root/mihomo.yaml
+./toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
+./toolbox status
+./toolbox doctor
+./toolbox check
+./toolbox mihomo restart
+./toolbox autostart
+./toolbox docs
+```
+
+底层 `scripts/*.sh` 仍然保留，适合排障、自动化和局部重跑；`./toolbox` 只是把高频任务收敛成一个更稳定的命令面。
 
 ## 安装内容
 
@@ -156,19 +175,22 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 
 ```bash
 # 一键安装/更新机器基础工具。
-bash install.sh --mihomo-yaml /root/mihomo.yaml
+./toolbox setup --mihomo-yaml /root/mihomo.yaml
 
 # 一键体检。
-bash scripts/doctor.sh
+./toolbox doctor
+
+# 快速体检。
+./toolbox check
 
 # 安装/更新仓库内打包的 Codex skills。
-bash scripts/install-codex-skills.sh
+./toolbox skills
 
 # 本地一条命令启动 SSH tunnel 和远端 Web 控制台。
-bash scripts/web-tunnel.sh
+./toolbox web-tunnel
 
 # 远端手动启动底层 Web 控制台。
-bash scripts/web-ui.sh --port 8765
+./toolbox web --port 8765
 
 # 当前 shell 使用本地代理。
 source scripts/proxy-on.sh
@@ -177,18 +199,18 @@ source scripts/proxy-on.sh
 source scripts/proxy-off.sh
 
 # 手动启动/停止 mihomo。
-bash scripts/mihomo-start.sh
-bash scripts/mihomo-stop.sh
+./toolbox mihomo start
+./toolbox mihomo stop
 
 # 探测并切换到可用的 mihomo 节点。
-bash scripts/mihomo-select-best.sh
+./toolbox mihomo best
 
 # 查看 mihomo 状态和代理出口。
-bash scripts/mihomo-status.sh --strict --test-proxy
+./toolbox mihomo check
 
 # 手动安装或修复自启。
-bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
-bash scripts/mihomo-autostart.sh status
+./toolbox autostart
+./toolbox autostart status
 ```
 
 Make 快捷入口：
@@ -256,6 +278,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 
 为了降低操作者负担，本仓库把常见子任务收敛成少量稳定入口：
 
+- `toolbox`：统一命令入口，优先给操作者和 Codex 使用。
 - `install.sh`：新机器配置主入口。
 - `scripts/install-codex-skills.sh`：把仓库内打包的 Codex skills 同步到 `~/.codex/skills/`。
 - `scripts/check-codex-sandbox.sh`：检查 Codex Linux sandbox 的 `bubblewrap` 前置项和容器 namespace 能力。
@@ -288,6 +311,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 
 ```text
 .
+|-- toolbox                            # 统一命令入口，收敛 setup/status/doctor/mihomo/autostart 等任务
 |-- install.sh                         # 一键安装入口：YAML、代理、自启、Codex CLI、bootstrap、doctor
 |-- README.md                          # 项目定位、最快路径、命令说明、边界和文件树
 |-- Makefile                           # 常用脚本快捷入口
@@ -321,6 +345,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |   |-- script-usage.md                # 安装后脚本使用教程
 |   |-- autostart-proxy-guide.md       # 给操作者看的 mihomo 自启和代理指南
 |   |-- autostart-proxy-machine-guide.md # 给 Codex/自动化看的自启维护手册
+|   |-- architecture-review.md         # 架构评审、方案比较和统一 CLI 设计记录
 |   |-- migration-engineering-notes.md # 迁移问题和处理规则
 |   `-- security.md                    # 敏感信息排除和推送前检查
 `-- skills/
