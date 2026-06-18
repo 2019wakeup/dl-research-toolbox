@@ -35,5 +35,7 @@ This document records reusable engineering lessons from migrating the toolbox to
 - `scripts/mihomo-start.sh` is the immediate start command.
 - `scripts/mihomo-autostart.sh install --mode system` is true boot autostart on normal systemd machines.
 - `scripts/mihomo-autostart.sh install --mode user --enable-linger` is appropriate when a systemd user manager is available.
-- `scripts/mihomo-autostart.sh install --mode profile` is a fallback for containers or SSH environments without systemd; it starts mihomo when the shell profile is read, not necessarily at machine boot.
+- `scripts/mihomo-autostart.sh install --mode profile` is a fallback for containers or SSH environments without systemd; it starts mihomo when the shell profile is read, not before any shell exists.
+- Autostart install should also refresh shell proxy environment hooks. Root installs write `/etc/profile.d/99-dl-research-toolbox-proxy.sh`, so new shells can start mihomo if needed and inherit proxy variables without a manual `source scripts/proxy-on.sh`.
+- Existing profile hooks must be replaced, not skipped, because a previously installed hook may point at an old toolbox path after moving the repo.
 - When updating an already running mihomo binary, install to a same-directory temporary file and `mv -f` it into place. Direct `cp` over the executable can fail with `Text file busy`.

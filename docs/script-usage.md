@@ -124,6 +124,8 @@ The real generated config lives in `~/.config/mihomo/config.yaml`. Do not copy t
 
 Immediate start is handled by `mihomo-start.sh`. Persistent startup is handled by `mihomo-autostart.sh`. `network-first-setup.sh` installs persistent startup by default after a successful YAML import.
 
+Autostart installation also refreshes shell proxy environment hooks by default. On root-owned machines this writes `/etc/profile.d/99-dl-research-toolbox-proxy.sh`, so new login or interactive shells start mihomo if needed and export `http_proxy`, `https_proxy`, and `all_proxy` automatically. Use `--no-shell-env` only if you want mihomo to run without changing shell proxy variables.
+
 Default automatic selection:
 
 ```bash
@@ -151,6 +153,8 @@ Fallback for containers or SSH images without systemd user services:
 bash scripts/mihomo-autostart.sh install --mode profile
 bash scripts/mihomo-autostart.sh status
 ```
+
+In containers where PID 1 is not systemd, profile mode is the available fallback: it cannot run before any shell exists, but it makes SSH/login shells seamless by starting mihomo and enabling proxy variables automatically.
 
 Remove all autostart entries:
 

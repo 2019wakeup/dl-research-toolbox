@@ -212,7 +212,9 @@ fi
 cat <<DONE
 Network-first setup complete.
 
-For this interactive shell, run:
+New login/interactive shells should auto-start mihomo and auto-enable proxy
+environment variables when mihomo autostart is installed. If you deliberately
+disabled the shell env hook, run:
   source scripts/proxy-on.sh
 
 Validate any time with:

@@ -54,8 +54,8 @@ scp ./mihomo.yaml root@your-new-machine:/root/mihomo.yaml
 2. 安装 mihomo 到用户本地路径。
 3. 从本地 YAML 导入配置，补齐必要运行字段并执行 `mihomo -t` 校验。
 4. 启动 mihomo，检查监听、controller 和代理出口。
-5. 默认配置 mihomo 自启。
-6. 在脚本进程内启用代理变量。
+5. 默认配置 mihomo 自启，并为新 shell 安装代理环境 hook。
+6. 在脚本进程内启用代理变量，后续登录/交互 shell 也会自动继承。
 7. 先安装 Codex CLI，并补齐 Codex Linux sandbox 需要的 `bubblewrap`/`bwrap`。
 8. 再安装通用科研 CLI、`gh`、`npm`、`uv` 和精简 Python 工具层。
 9. 运行 `scripts/doctor.sh` 做统一体检。
@@ -78,6 +78,13 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml --no-autostart
 # 只查看将要做什么。
 bash install.sh --mihomo-yaml /root/mihomo.yaml --dry-run
 ```
+
+## 自启与代理 Guide
+
+- 给操作者看的说明：[docs/autostart-proxy-guide.md](docs/autostart-proxy-guide.md)
+- 给 Codex/自动化看的运行手册：[docs/autostart-proxy-machine-guide.md](docs/autostart-proxy-machine-guide.md)
+
+正常 systemd 机器会安装真正的 system/user service。AutoDL 这类没有 systemd 的容器会使用 profile/profile.d fallback：新 SSH/login shell 自动启动 mihomo，并自动设置 `http_proxy`、`https_proxy`、`all_proxy` 等变量。
 
 ## 安装内容
 
@@ -312,6 +319,8 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |-- docs/
 |   |-- new-machine.md                 # 新机器安装检查表
 |   |-- script-usage.md                # 安装后脚本使用教程
+|   |-- autostart-proxy-guide.md       # 给操作者看的 mihomo 自启和代理指南
+|   |-- autostart-proxy-machine-guide.md # 给 Codex/自动化看的自启维护手册
 |   |-- migration-engineering-notes.md # 迁移问题和处理规则
 |   `-- security.md                    # 敏感信息排除和推送前检查
 `-- skills/
