@@ -18,10 +18,10 @@ Usage: bash scripts/doctor.sh [options]
 Run post-install health checks through one entrypoint.
 
 Options:
-  --quick       Run machine and mihomo proxy checks only; skip deep registry checks.
+  --quick       Run machine, mihomo, and Codex login egress checks only; skip deep registry checks.
   --no-python   Skip Python research tools import checks in deep mode.
-  --no-codex-login  Skip Codex ChatGPT device-code login egress check in deep mode.
-  --repair-codex-login  Repair mihomo selector for Codex login egress in deep mode.
+  --no-codex-login  Skip Codex ChatGPT device-code login egress check.
+  --repair-codex-login  Repair mihomo selector for Codex login egress.
   --no-source-proxy  Do not source scripts/proxy-on.sh before checks.
   --no-strict        Print failures but exit zero.
   -h, --help         Show this help.
@@ -44,14 +44,20 @@ done
 run_check() {
   local label="$1"
   shift
+  local rule="========================================================================"
   echo
-  echo "==> $label"
+  echo "$rule"
+  echo "DIAGNOSTIC: $label"
+  echo "$rule"
   if "$@"; then
+    echo
     echo "[ok] $label"
   else
+    echo
     echo "[fail] $label" >&2
     FAILURES=$((FAILURES + 1))
   fi
+  echo "$rule"
 }
 
 cd "$REPO_ROOT"
@@ -61,17 +67,18 @@ if [ "$SOURCE_PROXY" -eq 1 ] && [ -f scripts/proxy-on.sh ]; then
 fi
 run_check "machine check" bash scripts/check-machine.sh
 run_check "mihomo proxy check" bash scripts/mihomo-status.sh --strict --test-proxy
+if [ "$CHECK_CODEX_LOGIN" -eq 1 ]; then
+  codex_login_args=(check --no-source-proxy)
+  if [ "$REPAIR_CODEX_LOGIN" -eq 1 ]; then
+    codex_login_args=(repair --no-source-proxy)
+  fi
+  run_check "Codex ChatGPT device-code login egress" bash scripts/codex-login-egress-check.sh "${codex_login_args[@]}"
+fi
 
 if [ "$QUICK" -eq 0 ]; then
-  deep_args=()
+  deep_args=(--no-codex-login)
   if [ "$CHECK_PYTHON" -eq 0 ]; then
     deep_args+=(--no-python)
-  fi
-  if [ "$CHECK_CODEX_LOGIN" -eq 0 ]; then
-    deep_args+=(--no-codex-login)
-  fi
-  if [ "$REPAIR_CODEX_LOGIN" -eq 1 ]; then
-    deep_args+=(--repair-codex-login)
   fi
   run_check "deep proxy check" bash scripts/verify-proxy-deep.sh "${deep_args[@]}"
 fi

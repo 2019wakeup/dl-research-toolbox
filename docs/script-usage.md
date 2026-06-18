@@ -93,7 +93,7 @@ The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and i
 
 ## Codex login egress
 
-Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, not only `api.openai.com`. A proxy node can pass OpenAI API checks while still returning `403 Forbidden` for the device-code login endpoint. Before logging in, or after changing/restarting mihomo, run:
+Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, not only `api.openai.com`. A proxy node can pass OpenAI API checks while still returning `403 Forbidden` for the device-code login endpoint. `doctor.sh` and `./toolbox check` include this egress check by default. Before logging in, or after changing/restarting mihomo, run:
 
 ```bash
 ./toolbox codex-ready
@@ -207,13 +207,13 @@ Unified post-install check. It sources `scripts/proxy-on.sh` by default:
 bash scripts/doctor.sh
 ```
 
-Quick proxy-only check:
+Quick base check:
 
 ```bash
 bash scripts/doctor.sh --quick
 ```
 
-The full doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, and `verify-proxy-deep.sh`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
+The quick doctor runs `check-machine.sh`, `mihomo-status.sh --strict --test-proxy`, and `codex-login-egress-check.sh check`. The full doctor runs those same base checks, then adds `verify-proxy-deep.sh --no-codex-login`. The deep check covers proxy environment variables, curl to GitHub/Hugging Face/PyPI/npm registry, Git over HTTPS, `npm view`, Codex CLI, `uv`, and selected Python research-tool imports.
 
 ## Codex CLI
 

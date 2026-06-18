@@ -181,10 +181,10 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 # 一键体检。
 ./toolbox doctor
 
-# 快速体检。
+# 快速基础体检：机器、mihomo、Codex device-code 登录出口。
 ./toolbox check
 
-# Codex 登录前确保 ChatGPT device-code 出口可用。
+# Codex 登录前主动修复 ChatGPT device-code 出口。
 ./toolbox codex-ready
 
 # 只检查当前出口，不自动切节点。
@@ -289,7 +289,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 - `install.sh`：新机器配置主入口。
 - `scripts/install-codex-skills.sh`：把仓库内打包的 Codex skills 同步到 `~/.codex/skills/`。
 - `scripts/check-codex-sandbox.sh`：检查 Codex Linux sandbox 的 `bubblewrap` 前置项和容器 namespace 能力。
-- `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境）。
+- `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境，并检查 Codex device-code 登录出口）。
 - `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
 - `scripts/web-ui.sh`：远端本地 Web 控制台入口，通过 SSH 端口转发访问。
