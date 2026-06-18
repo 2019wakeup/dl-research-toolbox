@@ -98,6 +98,7 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml --dry-run
 ./toolbox status
 ./toolbox doctor
 ./toolbox check
+./toolbox codex-ready
 ./toolbox mihomo restart
 ./toolbox autostart
 ./toolbox docs
@@ -182,6 +183,12 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 
 # 快速体检。
 ./toolbox check
+
+# Codex 登录前确保 ChatGPT device-code 出口可用。
+./toolbox codex-ready
+
+# 只检查当前出口，不自动切节点。
+./toolbox codex-login check
 
 # 安装/更新仓库内打包的 Codex skills。
 ./toolbox skills
@@ -326,6 +333,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |   |-- bootstrap.sh                   # 通用 CLI、gh、npm、uv、Python 工具层安装
 |   |-- install-codex-cli.sh           # Codex CLI 安装/修复
 |   |-- check-codex-sandbox.sh         # Codex bubblewrap/sandbox 前置项检查
+|   |-- codex-login-egress-check.sh    # Codex device-code 登录出口检查/修复
 |   |-- mihomo-install.sh              # mihomo 二进制安装
 |   |-- mihomo-import-subscription.sh  # 本地 Clash/Mihomo YAML 导入、校验、启动、检查
 |   |-- mihomo-start.sh                # 用户态启动 mihomo

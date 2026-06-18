@@ -1,6 +1,6 @@
 SHELL := /usr/bin/env bash
 
-.PHONY: help setup proxy-only doctor status web web-tunnel bootstrap bootstrap-dry-run network-first check codex-sandbox-check proxy-deep-check install-skills skills-list mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-select-best mihomo-autostart mihomo-autostart-status
+.PHONY: help setup proxy-only doctor status codex-ready codex-login-check web web-tunnel bootstrap bootstrap-dry-run network-first check codex-sandbox-check proxy-deep-check install-skills skills-list mihomo-install mihomo-import mihomo-start mihomo-stop mihomo-status mihomo-check mihomo-select-best mihomo-autostart mihomo-autostart-status
 
 help:
 	./toolbox help
@@ -16,6 +16,12 @@ doctor:
 
 status:
 	./toolbox status
+
+codex-ready:
+	./toolbox codex-ready
+
+codex-login-check:
+	./toolbox codex-login check
 
 web:
 	./toolbox web

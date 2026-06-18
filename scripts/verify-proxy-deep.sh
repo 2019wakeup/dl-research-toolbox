@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 STRICT=1
 SOURCE_PROXY=1
 CHECK_PYTHON=1
+CHECK_CODEX_LOGIN=1
+REPAIR_CODEX_LOGIN=0
 GIT_REMOTE="${VERIFY_PROXY_GIT_REMOTE:-https://github.com/openai/codex.git}"
 NPM_PACKAGE="${VERIFY_PROXY_NPM_PACKAGE:-@openai/codex}"
 URLS=(
@@ -36,6 +38,8 @@ Options:
   --no-strict          Print failures but exit zero.
   --no-source-proxy    Do not source scripts/proxy-on.sh before checks.
   --no-python          Skip Python research tools import check.
+  --no-codex-login     Skip Codex ChatGPT device-code login egress check.
+  --repair-codex-login Repair mihomo selector before checking Codex login egress.
   --url URL            Add an extra URL to test with curl.
   --git-remote URL     Git remote for ls-remote. Default: openai/codex.
   --npm-package NAME   npm package for npm view. Default: @openai/codex.
@@ -49,6 +53,8 @@ while [ "$#" -gt 0 ]; do
     --no-strict) STRICT=0; shift ;;
     --no-source-proxy) SOURCE_PROXY=0; shift ;;
     --no-python) CHECK_PYTHON=0; shift ;;
+    --no-codex-login) CHECK_CODEX_LOGIN=0; shift ;;
+    --repair-codex-login) CHECK_CODEX_LOGIN=1; REPAIR_CODEX_LOGIN=1; shift ;;
     --url) URLS+=("${2:-}"); shift 2 ;;
     --git-remote) GIT_REMOTE="${2:-}"; shift 2 ;;
     --npm-package) NPM_PACKAGE="${2:-}"; shift 2 ;;
@@ -143,6 +149,19 @@ echo
 echo "CLI tools"
 echo "---------"
 if command -v codex >/dev/null 2>&1; then run_quiet "codex --version" codex --version; else fail "codex not found"; fi
+if [ "$CHECK_CODEX_LOGIN" -eq 1 ]; then
+  if [ -x "$SCRIPT_DIR/codex-login-egress-check.sh" ]; then
+    if [ "$REPAIR_CODEX_LOGIN" -eq 1 ]; then
+      run_quiet "Codex ChatGPT device-code login egress repair" bash "$SCRIPT_DIR/codex-login-egress-check.sh" repair --no-source-proxy
+    else
+      run_quiet "Codex ChatGPT device-code login egress" bash "$SCRIPT_DIR/codex-login-egress-check.sh" check --no-source-proxy
+    fi
+  else
+    fail "missing scripts/codex-login-egress-check.sh"
+  fi
+else
+  skip "Codex ChatGPT device-code login egress check disabled"
+fi
 if [ -f "$SCRIPT_DIR/check-codex-sandbox.sh" ]; then
   run_quiet "Codex sandbox prerequisites" bash "$SCRIPT_DIR/check-codex-sandbox.sh"
 else

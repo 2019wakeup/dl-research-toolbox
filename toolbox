@@ -17,12 +17,14 @@ Core workflow:
   doctor [doctor opts]       Full post-install health check.
   check [doctor opts]        Quick health check.
   status                    Show mihomo/autostart/proxy status.
+  codex-ready               Repair proxy selection for Codex device-code login.
 
 Network:
   mihomo <subcommand> [args] Manage mihomo.
     install | import | start | stop | restart | status | check | best
   autostart [args]          Install/repair autostart by default.
   env [show|exports|on|off] Inspect or print proxy environment helpers.
+  codex-login [check|repair] Verify or repair Codex ChatGPT login egress.
 
 Tools:
   web [args]                Start the remote local Web UI.
@@ -36,6 +38,7 @@ Examples:
   ./toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
   ./toolbox status
   ./toolbox doctor
+  ./toolbox codex-ready
   ./toolbox mihomo restart
   ./toolbox autostart
 USAGE
@@ -139,6 +142,17 @@ case "$cmd" in
 
   status)
     exec bash scripts/mihomo-autostart.sh status "$@"
+    ;;
+
+  codex-ready)
+    exec bash scripts/codex-login-egress-check.sh repair "$@"
+    ;;
+
+  codex-login)
+    if [ "$#" -eq 0 ]; then
+      exec bash scripts/codex-login-egress-check.sh check
+    fi
+    exec bash scripts/codex-login-egress-check.sh "$@"
     ;;
 
   deep-check|proxy-deep-check)

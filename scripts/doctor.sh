@@ -5,6 +5,8 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 QUICK=0
 CHECK_PYTHON=1
+CHECK_CODEX_LOGIN=1
+REPAIR_CODEX_LOGIN=0
 STRICT=1
 SOURCE_PROXY=1
 FAILURES=0
@@ -18,6 +20,8 @@ Run post-install health checks through one entrypoint.
 Options:
   --quick       Run machine and mihomo proxy checks only; skip deep registry checks.
   --no-python   Skip Python research tools import checks in deep mode.
+  --no-codex-login  Skip Codex ChatGPT device-code login egress check in deep mode.
+  --repair-codex-login  Repair mihomo selector for Codex login egress in deep mode.
   --no-source-proxy  Do not source scripts/proxy-on.sh before checks.
   --no-strict        Print failures but exit zero.
   -h, --help         Show this help.
@@ -28,6 +32,8 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --quick) QUICK=1; shift ;;
     --no-python) CHECK_PYTHON=0; shift ;;
+    --no-codex-login) CHECK_CODEX_LOGIN=0; shift ;;
+    --repair-codex-login) CHECK_CODEX_LOGIN=1; REPAIR_CODEX_LOGIN=1; shift ;;
     --no-source-proxy) SOURCE_PROXY=0; shift ;;
     --no-strict) STRICT=0; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -60,6 +66,12 @@ if [ "$QUICK" -eq 0 ]; then
   deep_args=()
   if [ "$CHECK_PYTHON" -eq 0 ]; then
     deep_args+=(--no-python)
+  fi
+  if [ "$CHECK_CODEX_LOGIN" -eq 0 ]; then
+    deep_args+=(--no-codex-login)
+  fi
+  if [ "$REPAIR_CODEX_LOGIN" -eq 1 ]; then
+    deep_args+=(--repair-codex-login)
   fi
   run_check "deep proxy check" bash scripts/verify-proxy-deep.sh "${deep_args[@]}"
 fi

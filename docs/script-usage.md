@@ -12,6 +12,7 @@ Prefer the root `./toolbox` command for day-to-day use. It keeps the common task
 ./toolbox status
 ./toolbox doctor
 ./toolbox check
+./toolbox codex-ready
 ./toolbox mihomo restart
 ./toolbox autostart
 ```
@@ -89,6 +90,28 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 ```
 
 The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and inspect autostart status. It binds to `127.0.0.1` by default and does not require HTTP tunneling.
+
+## Codex login egress
+
+Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, not only `api.openai.com`. A proxy node can pass OpenAI API checks while still returning `403 Forbidden` for the device-code login endpoint. Before logging in, or after changing/restarting mihomo, run:
+
+```bash
+./toolbox codex-ready
+```
+
+This command first checks the current selector. If the current node cannot request a Codex device code, it scans mihomo selector candidates and switches to one that can. Output uses candidate indexes instead of real node names, and any generated one-time device code is captured and redacted.
+
+To check without changing selectors:
+
+```bash
+./toolbox codex-login check
+```
+
+To repair with a smaller scan window:
+
+```bash
+./toolbox codex-login repair --scan-limit 40
+```
 
 ## Proxy session commands
 

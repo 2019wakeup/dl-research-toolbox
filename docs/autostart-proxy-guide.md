@@ -55,6 +55,14 @@ bash scripts/mihomo-autostart.sh status
 bash scripts/verify-proxy-deep.sh
 ```
 
+Codex ChatGPT 登录还需要额外验证。`api.openai.com` 可达只说明 API endpoint 可用；`codex login --device-auth` 还会访问 `chatgpt.com/backend-api/codex/deviceauth/usercode`。如果该 endpoint 被当前代理节点返回 `403 Forbidden` 或 Cloudflare challenge，运行：
+
+```bash
+./toolbox codex-ready
+```
+
+这个命令会自动扫描 mihomo selector，并切到一个可以请求 Codex device code 的节点。它不会输出真实节点名，也不会打印一次性 device code。
+
 模拟一个干净 login shell：
 
 ```bash
