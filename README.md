@@ -17,19 +17,20 @@
 ```bash
 git clone https://github.com/2019wakeup/dl-research-toolbox.git
 cd dl-research-toolbox
-./toolbox setup --mihomo-yaml /root/mihomo.yaml
+./toolbox install-cli
+toolbox setup --mihomo-yaml /root/mihomo.yaml
 ```
 
 如果你把配置文件命名为 `mihomo.yaml` 并放在仓库目录或 `$HOME` 下，可以省掉参数：
 
 ```bash
-./toolbox setup
+toolbox setup
 ```
 
-`./toolbox setup` 默认会做统一体检；需要复查时运行：
+`toolbox setup` 默认会做统一体检；需要复查时运行：
 
 ```bash
-./toolbox doctor
+toolbox doctor
 ```
 
 ## 准备 mihomo YAML
@@ -90,22 +91,57 @@ bash install.sh --mihomo-yaml /root/mihomo.yaml --dry-run
 
 ## 统一入口
 
-新用户优先使用根目录的 `./toolbox`：
+日常优先使用 PATH 里的 `toolbox`。`toolbox setup` 会维护 `~/.local/bin/toolbox` symlink；root 或可写 `/usr/local/bin` 的机器还会额外维护 `/usr/local/bin/toolbox`，让非交互 SSH 也能直接调用。如果是在刚 clone 的源码目录里，还没有安装 PATH 入口，可以先运行 `./toolbox install-cli`，或临时用 `./toolbox` 执行同样的子命令。
 
 ```bash
-./toolbox help
-./toolbox setup --mihomo-yaml /root/mihomo.yaml
-./toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
-./toolbox status
-./toolbox doctor
-./toolbox check
-./toolbox codex-ready
-./toolbox mihomo restart
-./toolbox autostart
-./toolbox docs
+toolbox help
+toolbox setup --mihomo-yaml /root/mihomo.yaml
+toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
+toolbox install-cli
+toolbox status
+toolbox doctor
+toolbox check
+toolbox repair
+toolbox repair status
+toolbox repair codex
+toolbox codex-ready
+toolbox mihomo restart
+toolbox autostart
+toolbox docs
 ```
 
-底层 `scripts/*.sh` 仍然保留，适合排障、自动化和局部重跑；`./toolbox` 只是把高频任务收敛成一个更稳定的命令面。
+底层 `scripts/*.sh` 仍然保留，适合排障、自动化和局部重跑；`toolbox` 只是把高频任务收敛成一个更稳定的命令面。
+
+## 网络快速修复
+
+如果 Codex、GitHub、Hugging Face、PyPI 或 npm 突然访问失败，优先运行：
+
+```bash
+toolbox repair
+```
+
+它会按安全顺序执行常见修复动作：
+
+1. 刷新 mihomo 自启和 shell 代理 hook。
+2. 启动 mihomo。
+3. 短扫 selector，切到可用节点。
+4. 复测 GitHub、Hugging Face、PyPI 代理出口。
+5. 检查 Codex 登录状态、Codex device-code 登录出口和官方 `codex doctor --ascii --summary`。
+6. 给当前 Git 仓库写入本地代理和 `HTTP/1.1` 配置，规避常见 HTTP/2 push/pull 抖动。
+7. 检查 Codex app-server 是否继承代理环境。
+
+常用子命令：
+
+```bash
+toolbox repair status
+toolbox repair proxy
+toolbox repair codex
+toolbox repair git --repo /path/to/repo
+toolbox repair app-server
+toolbox repair --deep
+```
+
+`toolbox repair app-server` 会重启 Codex app-server，可能打断当前 Codex 桌面/TUI 连接，所以没有放进默认 `repair`，需要时显式调用。
 
 ## 安装内容
 
@@ -177,31 +213,43 @@ ssh -N -L 8765:127.0.0.1:8765 user@server
 
 ```bash
 # 一键安装/更新机器基础工具。
-./toolbox setup --mihomo-yaml /root/mihomo.yaml
+toolbox setup --mihomo-yaml /root/mihomo.yaml
 
 # 一键体检。
-./toolbox doctor
+toolbox doctor
 
 # 快速基础体检：机器、mihomo、Codex device-code 登录出口。
-./toolbox check
+toolbox check
+
+# 常见网络问题一键修复：坏节点、Codex doctor 网络失败、Git HTTP/2 抖动。
+toolbox repair
+
+# 只查看当前网络/Codex/app-server/Git 状态。
+toolbox repair status
+
+# 修复 Codex 出口并运行官方 doctor。
+toolbox repair codex
+
+# 必要时重启 Codex app-server，让它继承当前代理环境。
+toolbox repair app-server
 
 # Codex 登录前主动修复 ChatGPT device-code 出口。
-./toolbox codex-ready
+toolbox codex-ready
 
 # 只检查当前出口，不自动切节点。
-./toolbox codex-login check
+toolbox codex-login check
 
 # 按官方 Codex 诊断检查认证、WebSocket、provider reachability、app-server。
 codex doctor --ascii --summary
 
 # 安装/更新仓库内打包的 Codex skills。
-./toolbox skills
+toolbox skills
 
 # 本地一条命令启动 SSH tunnel 和远端 Web 控制台。
-./toolbox web-tunnel
+toolbox web-tunnel
 
 # 远端手动启动底层 Web 控制台。
-./toolbox web --port 8765
+toolbox web --port 8765
 
 # 当前 shell 使用本地代理。
 source scripts/proxy-on.sh
@@ -210,18 +258,18 @@ source scripts/proxy-on.sh
 source scripts/proxy-off.sh
 
 # 手动启动/停止 mihomo。
-./toolbox mihomo start
-./toolbox mihomo stop
+toolbox mihomo start
+toolbox mihomo stop
 
 # 探测并切换到可用的 mihomo 节点。
-./toolbox mihomo best
+toolbox mihomo best
 
 # 查看 mihomo 状态和代理出口。
-./toolbox mihomo check
+toolbox mihomo check
 
 # 手动安装或修复自启。
-./toolbox autostart
-./toolbox autostart status
+toolbox autostart
+toolbox autostart status
 ```
 
 Make 快捷入口：
@@ -229,6 +277,7 @@ Make 快捷入口：
 ```bash
 make setup
 make doctor
+make repair
 make web-tunnel
 make web
 make mihomo-check
@@ -289,11 +338,13 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 
 为了降低操作者负担，本仓库把常见子任务收敛成少量稳定入口：
 
-- `toolbox`：统一命令入口，优先给操作者和 Codex 使用。
+- `toolbox`：统一命令入口，优先给操作者和 Codex 使用；安装后可从任意目录直接运行 `toolbox`。
 - `install.sh`：新机器配置主入口。
 - `scripts/install-codex-skills.sh`：把仓库内打包的 Codex skills 同步到 `~/.codex/skills/`。
 - `scripts/check-codex-sandbox.sh`：检查 Codex Linux sandbox 的 `bubblewrap` 前置项和容器 namespace 能力。
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境，检查 Codex device-code 登录出口，并运行官方 `codex doctor`）。
+- `scripts/network-repair.sh`：常见网络/Codex/Git/app-server 快速修复入口。
+- `scripts/install-toolbox-cli.sh`：安装或修复 `~/.local/bin/toolbox` symlink，并在 root/可写系统路径上维护 `/usr/local/bin/toolbox` shim。
 - `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
 - `scripts/web-ui.sh`：远端本地 Web 控制台入口，通过 SSH 端口转发访问。
@@ -322,7 +373,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 
 ```text
 .
-|-- toolbox                            # 统一命令入口，收敛 setup/status/doctor/mihomo/autostart 等任务
+|-- toolbox                            # 统一命令入口，收敛 setup/status/doctor/repair/mihomo/autostart 等任务
 |-- install.sh                         # 一键安装入口：YAML、代理、自启、Codex CLI、bootstrap、doctor
 |-- README.md                          # 项目定位、最快路径、命令说明、边界和文件树
 |-- Makefile                           # 常用脚本快捷入口
@@ -331,6 +382,8 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |-- scripts/
 |   |-- network-first-setup.sh         # 网络优先底层入口
 |   |-- doctor.sh                      # 统一体检入口（默认自动启用本地代理环境和官方 Codex doctor）
+|   |-- network-repair.sh              # 常见网络/Codex/Git/app-server 快速修复入口
+|   |-- install-toolbox-cli.sh         # 安装/修复 toolbox CLI symlink/shim
 |   |-- web-tunnel.sh                  # 本地侧 SSH tunnel helper
 |   |-- web-ui.sh                      # 远端本地 Web 控制台启动器
 |   |-- toolbox-web.py                 # Web 控制台后端（Python 标准库）

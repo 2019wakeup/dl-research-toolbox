@@ -102,6 +102,7 @@ if [ "$FAILURES" -eq 0 ]; then
   echo "Doctor checks passed."
 else
   echo "Doctor checks failed: $FAILURES issue(s)." >&2
+  echo "Quick repair: toolbox repair" >&2
 fi
 
 if [ "$STRICT" -eq 1 ] && [ "$FAILURES" -gt 0 ]; then

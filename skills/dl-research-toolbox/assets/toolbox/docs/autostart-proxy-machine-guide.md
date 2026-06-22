@@ -44,7 +44,18 @@ container fallback:       neither system nor user systemd is available
 
 ## Install or Repair
 
-Preferred command:
+Preferred high-level repair command:
+
+```bash
+toolbox repair
+```
+
+It refreshes mihomo autostart/profile hooks, starts mihomo, selects a reachable
+selector candidate, verifies common proxy egress, checks Codex login egress,
+runs official `codex doctor --ascii --summary`, configures the caller Git repo
+for local proxy plus `HTTP/1.1`, and inspects Codex app-server proxy env.
+
+Lower-level autostart-only command:
 
 ```bash
 bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
@@ -85,12 +96,14 @@ bash -n scripts/mihomo-autostart.sh
 bash -n scripts/proxy-on.sh
 bash -n scripts/proxy-off.sh
 bash -n scripts/network-first-setup.sh
+bash -n scripts/network-repair.sh
+bash -n scripts/install-toolbox-cli.sh
 dash -c '. scripts/proxy-on.sh >/tmp/proxy-on.out; test "$http_proxy" = "http://127.0.0.1:7890"'
 dash -c '. scripts/proxy-off.sh >/tmp/proxy-off.out; test -z "${http_proxy:-}"'
 bash -lc 'test "$http_proxy" = "http://127.0.0.1:7890"'
 bash -ic 'test "$http_proxy" = "http://127.0.0.1:7890"'
-bash scripts/mihomo-autostart.sh status
-bash scripts/verify-proxy-deep.sh
+toolbox repair status
+toolbox check
 ```
 
 Codex runtime verification:
@@ -110,9 +123,16 @@ ps -eo pid,ppid,etime,cmd | grep -E '[c]odex|[m]cp'
 tr '\0' '\n' </proc/PID/environ | grep -Ei '^(http|https|all|no)_proxy='
 ```
 
-Restart stale Codex TUI or app-server processes that were launched before proxy
-hooks were repaired. Do not treat account quota or plan-limit responses as
-proxy-node failures once `codex doctor` passes.
+Restart stale Codex TUI processes that were launched before proxy hooks were
+repaired. Restart app-server only through the explicit command because it can
+interrupt the current desktop/TUI connection:
+
+```bash
+toolbox repair app-server
+```
+
+Do not treat account quota or plan-limit responses as proxy-node failures once
+`codex doctor` passes.
 
 Smoke-test a clean login shell:
 
@@ -148,9 +168,10 @@ Stage only tracked source/docs plus intended new docs. Example:
 
 ```bash
 git add README.md docs/autostart-proxy-guide.md docs/autostart-proxy-machine-guide.md \
-  docs/script-usage.md docs/migration-engineering-notes.md \
-  scripts/mihomo-autostart.sh scripts/network-first-setup.sh \
-  scripts/proxy-on.sh scripts/proxy-off.sh
+  docs/script-usage.md docs/codex-remote-runtime-postmortem.md \
+  scripts/network-repair.sh scripts/install-toolbox-cli.sh \
+  scripts/mihomo-select-best.sh scripts/codex-login-egress-check.sh \
+  scripts/doctor.sh scripts/toolbox-web.py install.sh toolbox
 ```
 
 Do not stage `mihomo.yaml`.

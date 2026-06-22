@@ -159,6 +159,12 @@ if [ "${INSTALL_PYTHON_TOOLS:-1}" = "0" ]; then
   SKIP_PYTHON_TOOLS=1
 fi
 
+cli_install_args=()
+if [ "$DRY_RUN" -eq 1 ]; then
+  cli_install_args+=(--dry-run)
+fi
+bash "$SCRIPT_DIR/scripts/install-toolbox-cli.sh" "${cli_install_args[@]}"
+
 if [ "$SKIP_PYTHON_TOOLS" -eq 1 ]; then
   INSTALL_PYTHON_TOOLS=0 bash "$SCRIPT_DIR/scripts/network-first-setup.sh" "${NETWORK_ARGS[@]}"
 else

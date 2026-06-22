@@ -1,25 +1,41 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE="${BASH_SOURCE[0]}"
+CALLER_CWD="$(pwd)"
+while [ -L "$SOURCE" ]; do
+  SOURCE_DIR="$(cd -P -- "$(dirname -- "$SOURCE")" && pwd)"
+  TARGET="$(readlink -- "$SOURCE")"
+  if [[ "$TARGET" == /* ]]; then
+    SOURCE="$TARGET"
+  else
+    SOURCE="$SOURCE_DIR/$TARGET"
+  fi
+done
+SCRIPT_DIR="$(cd -P -- "$(dirname -- "$SOURCE")" && pwd)"
 cd "$SCRIPT_DIR"
+export TOOLBOX_REPO_ROOT="$SCRIPT_DIR"
+export TOOLBOX_CALLER_CWD="$CALLER_CWD"
 
 usage() {
   cat <<'USAGE'
 DL Research Toolbox
 
 Usage:
-  ./toolbox <command> [args]
+  toolbox <command> [args]
 
 Core workflow:
   setup [install opts]       Fresh-machine setup; forwards to install.sh.
   proxy-only [install opts]  Configure proxy, autostart, and Codex CLI only.
+  install-cli               Install/repair ~/.local/bin/toolbox symlink.
   doctor [doctor opts]       Full post-install health check.
   check [doctor opts]        Quick health check.
   status                    Show mihomo/autostart/proxy status.
+  repair [repair opts]       Fast network/Codex repair bundle.
   codex-ready               Repair proxy selection for Codex device-code login.
 
 Network:
+  network [repair opts]      Alias for repair.
   mihomo <subcommand> [args] Manage mihomo.
     install | import | start | stop | restart | status | check | best
   autostart [args]          Install/repair autostart by default.
@@ -34,13 +50,18 @@ Tools:
   docs                      Print the main operator docs.
 
 Examples:
-  ./toolbox setup --mihomo-yaml /root/mihomo.yaml
-  ./toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
-  ./toolbox status
-  ./toolbox doctor
-  ./toolbox codex-ready
-  ./toolbox mihomo restart
-  ./toolbox autostart
+  toolbox setup --mihomo-yaml /root/mihomo.yaml
+  toolbox proxy-only --mihomo-yaml /root/mihomo.yaml
+  toolbox install-cli
+  toolbox status
+  toolbox doctor
+  toolbox repair
+  toolbox repair status
+  toolbox repair codex
+  toolbox repair app-server
+  toolbox codex-ready
+  toolbox mihomo restart
+  toolbox autostart
 USAGE
 }
 
@@ -93,7 +114,7 @@ To remove them from the current shell:
   source scripts/proxy-off.sh
 
 For auto-enabled new shells:
-  ./toolbox autostart
+  toolbox autostart
 ENVINFO
 }
 
@@ -132,6 +153,10 @@ case "$cmd" in
     exec bash install.sh --no-bootstrap "$@"
     ;;
 
+  install-cli|self-install)
+    exec bash scripts/install-toolbox-cli.sh "$@"
+    ;;
+
   doctor)
     exec bash scripts/doctor.sh "$@"
     ;;
@@ -142,6 +167,10 @@ case "$cmd" in
 
   status)
     exec bash scripts/mihomo-autostart.sh status "$@"
+    ;;
+
+  repair|network|fix)
+    exec bash scripts/network-repair.sh "$@"
     ;;
 
   codex-ready)

@@ -88,9 +88,12 @@ MIHOMO_SELECT_DRY_RUN="$DRY_RUN" \
 python3 - <<'PY_SELECT'
 import json
 import os
+from functools import partial
 import urllib.error
 import urllib.parse
 import urllib.request
+
+print = partial(print, flush=True)
 
 base = os.environ["MIHOMO_CONTROLLER_URL"].rstrip("/")
 secret = os.environ.get("MIHOMO_CONTROLLER_SECRET", "")

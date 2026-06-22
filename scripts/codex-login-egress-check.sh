@@ -86,7 +86,10 @@ import subprocess
 import time
 import urllib.parse
 import urllib.request
+from functools import partial
 from pathlib import Path
+
+print = partial(print, flush=True)
 
 ACTION = os.environ["CODEX_LOGIN_ACTION"]
 STRICT = os.environ.get("CODEX_LOGIN_STRICT") == "1"

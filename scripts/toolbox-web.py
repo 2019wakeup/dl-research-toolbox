@@ -28,6 +28,7 @@ ACTIONS: dict[str, tuple[str, list[str], int]] = {
     "mihomo_stop": ("停止 mihomo", ["bash", "scripts/mihomo-stop.sh"], 45),
     "mihomo_restart": ("重启 mihomo", ["bash", "-lc", "bash scripts/mihomo-stop.sh && bash scripts/mihomo-start.sh"], 60),
     "mihomo_status": ("刷新 mihomo 状态", ["bash", "scripts/mihomo-status.sh", "--test-proxy", "--no-log"], 90),
+    "network_repair": ("网络快速修复", ["bash", "scripts/network-repair.sh", "all", "--no-strict"], 300),
     "doctor_quick": ("快速体检", ["bash", "scripts/doctor.sh", "--quick"], 120),
     "doctor_full": ("完整体检", ["bash", "scripts/doctor.sh"], 300),
     "deep_proxy": ("深度代理检查", ["bash", "scripts/verify-proxy-deep.sh"], 300),
@@ -194,6 +195,7 @@ def page_html() -> str:
           <button class="danger" data-action="mihomo_stop">停止</button>
           <button data-action="mihomo_restart">重启</button>
           <button data-action="mihomo_status">代理出口检查</button>
+          <button data-action="network_repair">网络快速修复</button>
         </div>
       </section>
       <section class="panel span-4">

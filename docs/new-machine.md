@@ -7,29 +7,34 @@ This checklist keeps the machine setup generic and project-independent.
 ```bash
 git clone <your-repo-url> dl-research-toolbox
 cd dl-research-toolbox
+./toolbox install-cli
 ```
+
+The CLI installer creates `~/.local/bin/toolbox`. On root machines it also
+creates `/usr/local/bin/toolbox`, so non-interactive SSH commands can call
+`toolbox` without sourcing a profile first.
 
 ## 2. Configure network first
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`install.sh` is the main operator entrypoint. It calls `network-first-setup.sh`, installs mihomo, imports a local Clash/Mihomo YAML file, checks listeners and proxy egress, installs mihomo autostart by default, installs Codex CLI through npm, installs the Linux `bubblewrap` sandbox prerequisite, runs the full bootstrap with proxy variables already active inside the script, then runs `scripts/doctor.sh`. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
+`toolbox setup` is the main operator entrypoint. It calls `install.sh`, which calls `network-first-setup.sh`, installs mihomo, imports a local Clash/Mihomo YAML file, checks listeners and proxy egress, installs mihomo autostart by default, installs Codex CLI through npm, installs the Linux `bubblewrap` sandbox prerequisite, runs the full bootstrap with proxy variables already active inside the script, then runs `scripts/doctor.sh`. This order prevents later `apt`, `uv`, GitHub, Hugging Face, and Python package downloads from failing due to network issues.
 
 Use a local YAML file for cold-start migration. A subscription URL may be blocked before mihomo is running; `--url` is only for machines that already have direct access to the subscription endpoint.
 
 If an old mihomo process is already using the configured port, rerun with:
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --replace-running
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml --replace-running
 ```
 
 To configure network only and skip the full bootstrap:
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
+toolbox proxy-only --mihomo-yaml /path/to/mihomo.yaml
 ```
 
 The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed Python research tools venv at `~/.local/venvs/research-tools`. It does not install conda, PyTorch, CUDA wheels, model code, datasets, or checkpoints.
@@ -37,7 +42,7 @@ The bootstrap installs common Linux tools plus `gh`, `npm`, `uv`, and a trimmed 
 To skip the Python tools venv when bootstrap runs:
 
 ```bash
-bash install.sh --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
 ```
 
 ## 3. Configure mihomo manually when needed
@@ -74,7 +79,8 @@ source scripts/network-turbo-on.sh
 ## 5. Validate
 
 ```bash
-bash scripts/doctor.sh
+toolbox check
+toolbox doctor
 ```
 
 ## 6. mihomo autostart
@@ -83,11 +89,17 @@ bash scripts/doctor.sh
 
 ```bash
 # Auto mode uses system service when possible and falls back to user/profile modes.
-bash scripts/mihomo-autostart.sh install --mode auto --enable-linger
-bash scripts/mihomo-autostart.sh status
+toolbox autostart
+toolbox autostart status
 
 # True boot autostart on normal systemd machines.
 bash scripts/mihomo-autostart.sh install --mode system
+```
+
+For previously healthy machines where Codex or common HTTPS egress suddenly fails, run:
+
+```bash
+toolbox repair
 ```
 
 Use `--no-autostart` with `network-first-setup.sh` only when the machine should not persist proxy startup. Use `--mode profile` only when systemd services are unavailable. Profile mode starts mihomo when a shell profile is read, not necessarily before login.

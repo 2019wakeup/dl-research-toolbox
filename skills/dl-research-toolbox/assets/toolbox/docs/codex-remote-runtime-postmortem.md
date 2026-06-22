@@ -7,6 +7,14 @@ The machine could install Codex and eventually log in, but interactive Codex sti
 looked unusable. The final state was not one bug; it was a stack of separate
 failure layers.
 
+Update on 2026-06-22: the same machine later showed a different failure mode.
+Codex was already logged in, and app-server processes did inherit proxy
+environment variables, but the active mihomo selector pointed at an unreachable
+outbound node. `codex doctor --ascii --summary` reported WebSocket and provider
+reachability failures. `toolbox mihomo check` showed TLS EOF failures, and the
+mihomo log showed outbound TCP timeout to the selected node. Running a short
+selector scan restored proxy egress and made `codex doctor` pass again.
+
 ## What Happened
 
 The first visible failure happened during interactive login:
@@ -58,9 +66,14 @@ provider endpoints and WebSocket failures. When run from a login shell that had
 6. After network and auth were repaired, a separate account quota window became
    the active blocker. That state is not machine-side network failure.
 
+7. A healthy autostart setup can still fail later if the active selector node
+   goes bad. In that state, `mihomo` is listening and proxy env exists, but
+   common HTTPS egress and Codex provider reachability fail until selector
+   groups are switched to a reachable node.
+
 ## Fixes Applied
 
-- Added `scripts/codex-login-egress-check.sh` and `./toolbox codex-ready` to
+- Added `scripts/codex-login-egress-check.sh` and `toolbox codex-ready` to
   test and repair the Codex device-code login egress.
 - Updated the login egress check so it skips `codex login --device-auth` when
   Codex is already logged in. Use `--force-device-probe` only for explicit
@@ -73,6 +86,12 @@ provider endpoints and WebSocket failures. When run from a login shell that had
 - Added official `codex doctor --ascii --summary` to `scripts/doctor.sh` so
   the toolbox sees Codex's own connectivity/auth/runtime view.
 - Restarted the stale app-server so it inherited the current proxy environment.
+- Added `scripts/network-repair.sh` and `toolbox repair` for the common recovery
+  bundle: refresh hooks, start mihomo, short-scan selectors, verify proxy
+  egress, run Codex egress/doctor checks, configure Git HTTP/1.1 proxy, and
+  inspect app-server proxy env.
+- Added `toolbox repair app-server` as an explicit action for the disruptive
+  app-server restart case.
 
 ## Correct Diagnostic Order
 
@@ -80,14 +99,21 @@ Run these from the target machine:
 
 ```bash
 cd /root/autodl-tmp/projects/dl-research-toolbox
-./toolbox check
+toolbox repair status
+toolbox repair
+toolbox check
 codex login status
 codex doctor --ascii --summary
 printf '%s' 'Reply exactly OK' | codex exec --sandbox read-only --color never --skip-git-repo-check -
 ```
 
-If `codex doctor` says there are no proxy environment variables, open a new
-shell or run:
+If `codex doctor` says provider endpoints or WebSocket are unreachable, run:
+
+```bash
+toolbox repair codex
+```
+
+If it says there are no proxy environment variables, open a new shell or run:
 
 ```bash
 source scripts/proxy-on.sh
@@ -100,10 +126,11 @@ and start a fresh process:
 codex
 ```
 
-If the app-server was started before the proxy fix, stop stale app-server
-processes and let the next Codex remote/app-server start inherit the repaired
-environment. Prefer official daemon management when the standalone Codex install
-exists; npm installs may need a normal process restart instead.
+If the app-server was started before the proxy fix, restart it explicitly:
+
+```bash
+toolbox repair app-server
+```
 
 ## Prevention Rules
 
@@ -116,6 +143,8 @@ exists; npm installs may need a normal process restart instead.
   device-code endpoint path.
 - Check the environment of already-running Codex processes when behavior differs
   between a fresh shell and an existing TUI.
+- If proxy env exists but HTTPS egress fails with TLS EOF or TCP timeout, treat
+  it as a bad active selector and run `toolbox repair` or `toolbox mihomo best`.
 - Distinguish machine/network failures from account quota or plan limits. Once
   `codex doctor` passes and `codex exec` reaches the model service, quota errors
   are not fixed by switching proxy nodes.

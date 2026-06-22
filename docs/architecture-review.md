@@ -46,7 +46,7 @@
 
 优点：
 
-- 新用户只需要记 `./toolbox`。
+- 新用户只需要记 `toolbox`。
 - 现有脚本继续作为稳定模块，风险低。
 - 可以把常用任务命名成 `setup`、`status`、`doctor`、`check`、`autostart`。
 - Makefile、README、Web UI、Codex skill 后续都可以收敛到同一命令面。
@@ -75,20 +75,20 @@
 
 ## 已选方向
 
-采用方案 C：新增根入口 `./toolbox`。
+采用方案 C：新增根入口 `toolbox`。
 
 设计原则：
 
 - 保留现有脚本，不破坏老命令。
-- `./toolbox` 只做路由、帮助和少量组合任务。
+- `toolbox` 只做路由、帮助和少量组合任务。
 - 高层命令按用户目标命名，而不是按文件名命名。
 - 新手路径优先：`setup`、`proxy-only`、`status`、`doctor`、`check`。
 - 排障路径仍可达：`mihomo start|stop|restart|status|check|best|import|install`。
-- 代理环境变量保留显式边界：`./toolbox env` 解释当前 shell 状态，`./toolbox env exports` 可给自动化使用。
+- 代理环境变量保留显式边界：`toolbox env` 解释当前 shell 状态，`toolbox env exports` 可给自动化使用。
 
 ## 后续演进
 
-1. 让 Web UI action table 调用 `./toolbox`，减少重复命令定义。
-2. 给 `./toolbox` 增加机器可读输出，例如 `./toolbox status --json`。
+1. 让 Web UI action table 调用 `toolbox`，减少重复命令定义。
+2. 给 `toolbox` 增加机器可读输出，例如 `toolbox status --json`。
 3. 如果命令面稳定，再引入 manifest 生成 README/Makefile/Web UI 动作。
 4. 长期再考虑 Python CLI，但必须保留无依赖冷启动路径。

@@ -1,20 +1,24 @@
 # Script Usage Guide
 
-This guide covers the scripts you normally use after installing the toolbox on a new machine. Commands assume you are in the toolbox directory.
+This guide covers the scripts you normally use after installing the toolbox on a new machine. Day-to-day commands use the installed `toolbox` CLI. The CLI installer maintains `~/.local/bin/toolbox` and, when running as root or with a writable system bin directory, `/usr/local/bin/toolbox` for non-interactive SSH. When working from a fresh clone before PATH setup, run `./toolbox install-cli` first or use `./toolbox` as a temporary fallback.
 
 ## Unified entrypoint
 
-Prefer the root `./toolbox` command for day-to-day use. It keeps the common tasks discoverable while preserving the lower-level scripts for debugging and automation.
+Prefer the installed `toolbox` command for day-to-day use. It keeps the common tasks discoverable while preserving the lower-level scripts for debugging and automation.
 
 ```bash
-./toolbox help
-./toolbox setup --mihomo-yaml /path/to/mihomo.yaml
-./toolbox status
-./toolbox doctor
-./toolbox check
-./toolbox codex-ready
-./toolbox mihomo restart
-./toolbox autostart
+toolbox help
+toolbox install-cli
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml
+toolbox status
+toolbox doctor
+toolbox check
+toolbox repair
+toolbox repair status
+toolbox repair codex
+toolbox codex-ready
+toolbox mihomo restart
+toolbox autostart
 ```
 
 ## One-command setup
@@ -22,17 +26,40 @@ Prefer the root `./toolbox` command for day-to-day use. It keeps the common task
 Use the unified wrapper on a fresh machine. It detects `./mihomo.yaml` or `~/mihomo.yaml` automatically, or accepts an explicit path. It runs network-first setup and then `scripts/doctor.sh`.
 
 ```bash
-./toolbox setup --mihomo-yaml /path/to/mihomo.yaml
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml
 ```
 
 Common variants:
 
 ```bash
-./toolbox proxy-only --mihomo-yaml /path/to/mihomo.yaml
-./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --replace-running
-./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
-./toolbox setup --mihomo-yaml /path/to/mihomo.yaml --dry-run
+toolbox proxy-only --mihomo-yaml /path/to/mihomo.yaml
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml --replace-running
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml --skip-python-tools
+toolbox setup --mihomo-yaml /path/to/mihomo.yaml --dry-run
 ```
+
+## Fast network repair
+
+Use this when Codex, GitHub, Hugging Face, PyPI, npm, or Git suddenly stops working after the machine was previously healthy:
+
+```bash
+toolbox repair
+```
+
+The default repair refreshes mihomo autostart and shell hooks, starts mihomo, runs a short selector scan, verifies common proxy egress, checks Codex login egress, runs official `codex doctor --ascii --summary`, configures the current Git repository for the local proxy and `HTTP/1.1`, and checks whether Codex app-server inherited proxy variables.
+
+Common targeted repairs:
+
+```bash
+toolbox repair status
+toolbox repair proxy
+toolbox repair codex
+toolbox repair git --repo /path/to/repo
+toolbox repair app-server
+toolbox repair --deep
+```
+
+Use `toolbox repair app-server` only when Codex still reports app-server, MCP, WebSocket, or request timeouts after `toolbox repair codex` passes. It restarts `codex app-server` processes and can interrupt the current Codex desktop/TUI connection.
 
 ## Network-first setup
 
@@ -93,10 +120,10 @@ The UI can start/stop/restart mihomo, run proxy checks, run doctor checks, and i
 
 ## Codex login egress
 
-Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, not only `api.openai.com`. A proxy node can pass OpenAI API checks while still returning `403 Forbidden` for the device-code login endpoint. `doctor.sh` and `./toolbox check` include this egress check by default. Before logging in, or after changing/restarting mihomo, run:
+Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, not only `api.openai.com`. A proxy node can pass OpenAI API checks while still returning `403 Forbidden` for the device-code login endpoint. `doctor.sh` and `toolbox check` include this egress check by default. Before logging in, or after changing/restarting mihomo, run:
 
 ```bash
-./toolbox codex-ready
+toolbox codex-ready
 ```
 
 This command first checks the current selector. If the current node cannot request a Codex device code, it scans mihomo selector candidates and switches to one that can. Output uses candidate indexes instead of real node names, and any generated one-time device code is captured and redacted.
@@ -106,19 +133,19 @@ If Codex is already logged in, the check does not run `codex login --device-auth
 To check without changing selectors:
 
 ```bash
-./toolbox codex-login check
+toolbox codex-login check
 ```
 
 Force the device-code probe even when already logged in:
 
 ```bash
-./toolbox codex-login check --force-device-probe
+toolbox codex-login check --force-device-probe
 ```
 
 To repair with a smaller scan window:
 
 ```bash
-./toolbox codex-login repair --scan-limit 40
+toolbox codex-login repair --scan-limit 40
 ```
 
 ## Proxy session commands
@@ -244,13 +271,23 @@ After login, use the official local diagnostic before starting long work:
 codex doctor --ascii --summary
 ```
 
-If `codex doctor` reports missing proxy environment, WebSocket timeout, or unreachable provider endpoints, open a new shell or run:
+If `codex doctor` reports missing proxy environment, WebSocket timeout, or unreachable provider endpoints, run the Codex-focused repair first:
+
+```bash
+toolbox repair codex
+```
+
+For a shell-only manual fallback, open a new shell or run:
 
 ```bash
 source scripts/proxy-on.sh
 ```
 
-If an existing Codex TUI was started before proxy hooks were fixed, exit it and start a fresh `codex` process so it inherits the repaired environment. If app-server or MCP errors continue, check for stale `codex app-server` processes that were started before the proxy fix.
+If an existing Codex TUI was started before proxy hooks were fixed, exit it and start a fresh `codex` process so it inherits the repaired environment. If app-server or MCP errors continue after `toolbox repair codex` passes, run:
+
+```bash
+toolbox repair app-server
+```
 
 The script ensures a modern Node.js is installed, handles Ubuntu Node 12 conflicts, reinstalls broken Codex CLI packages, and persists `~/.local/bin` into shell profiles.
 
@@ -332,6 +369,9 @@ This opens a shell window, GPU monitor window, and log window. It does not assum
 ```bash
 make setup
 make doctor
+make repair
+make repair-status
+make repair-codex
 make web-tunnel
 make web
 make network-first

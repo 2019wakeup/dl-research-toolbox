@@ -53,14 +53,22 @@ bash scripts/mihomo-autostart.sh status
 常规验证：
 
 ```bash
-bash scripts/mihomo-autostart.sh status
-bash scripts/verify-proxy-deep.sh
+toolbox repair status
+toolbox check
 ```
+
+如果 `mihomo` 监听正常，但 GitHub/Hugging Face/PyPI 或 `codex doctor` 报网络失败，通常是当前 selector 里的出站节点不可达。先运行：
+
+```bash
+toolbox repair
+```
+
+它会刷新自启 hook、启动 mihomo、短扫并切换到可用节点，再复测 Codex 官方 doctor 和常用出口。
 
 Codex ChatGPT 登录还需要额外验证。`api.openai.com` 可达只说明 API endpoint 可用；`codex login --device-auth` 还会访问 `chatgpt.com/backend-api/codex/deviceauth/usercode`。如果该 endpoint 被当前代理节点返回 `403 Forbidden` 或 Cloudflare challenge，运行：
 
 ```bash
-./toolbox codex-ready
+toolbox codex-ready
 ```
 
 这个命令会自动扫描 mihomo selector，并切到一个可以请求 Codex device code 的节点。它不会输出真实节点名，也不会打印一次性 device code。
@@ -77,7 +85,11 @@ codex login --device-auth
 codex doctor --ascii --summary
 ```
 
-如果新 shell 的 `codex doctor` 通过，但旧的 Codex TUI 仍然超时，优先怀疑旧进程是在代理 hook 修复前启动的。退出旧 TUI 后重新运行 `codex`。如果提示 app-server、MCP 或 `codex_apps` 相关超时，检查是否有旧的 `codex app-server` 进程没有继承代理环境。
+如果新 shell 的 `codex doctor` 通过，但旧的 Codex TUI 仍然超时，优先怀疑旧进程是在代理 hook 修复前启动的。退出旧 TUI 后重新运行 `codex`。如果提示 app-server、MCP 或 `codex_apps` 相关超时，运行：
+
+```bash
+toolbox repair app-server
+```
 
 模拟一个干净 login shell：
 
