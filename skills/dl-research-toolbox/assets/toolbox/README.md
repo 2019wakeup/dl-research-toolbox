@@ -53,13 +53,17 @@ scp ./mihomo.yaml root@your-new-machine:/root/mihomo.yaml
 
 1. 安装最小网络前置工具：`ca-certificates`、`curl`、`gzip`。
 2. 安装 mihomo 到用户本地路径。
-3. 从本地 YAML 导入配置，补齐必要运行字段并执行 `mihomo -t` 校验。
+3. 从本地 YAML 导入配置，默认规范为 `mode: rule`，补齐必要运行字段并执行 `mihomo -t` 校验。
 4. 启动 mihomo，检查监听、controller 和代理出口。
 5. 默认配置 mihomo 自启，并为新 shell 安装代理环境 hook。
 6. 在脚本进程内启用代理变量，后续登录/交互 shell 也会自动继承。
 7. 先安装 Codex CLI，并补齐 Codex Linux sandbox 需要的 `bubblewrap`/`bwrap`。
 8. 再安装通用科研 CLI、`gh`、`npm`、`uv` 和精简 Python 工具层。
 9. 运行 `scripts/doctor.sh` 做统一体检。
+
+导入脚本只在原 YAML 缺少 `rules` 时生成默认规则：OpenAI/Codex、GitHub、Hugging Face、PyPI、npm 等科研常用域名走 `PROXY`，其余 `MATCH,DIRECT`，避免把全部流量默认打到代理上。已有复杂规则不会被自动重写；如果确实要保留源 YAML 的 `mode`，可用 `--keep-mode` 或 `MIHOMO_FORCE_RULE_MODE=0`。
+
+自动选点和网络修复默认优先使用“低于 `2.0` 倍率、非香港/HK”的可用节点；高倍率或香港节点只作为 fallback。倍率来自节点名中的常见标记，例如 `2x`、`2.0倍`、`倍率:2`。可用 `MIHOMO_SELECT_MAX_MULTIPLIER`、`MIHOMO_SELECT_AVOID_REGEX` 调整策略；Codex 登录修复也支持对应的 `CODEX_LOGIN_MAX_MULTIPLIER`、`CODEX_LOGIN_AVOID_REGEX`。
 
 常用变体：
 
@@ -345,7 +349,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境，检查 Codex device-code 登录出口，并运行官方 `codex doctor`）。
 - `scripts/network-repair.sh`：常见网络/Codex/Git/app-server 快速修复入口。
 - `scripts/install-toolbox-cli.sh`：安装或修复 `~/.local/bin/toolbox` symlink，并在 root/可写系统路径上维护 `/usr/local/bin/toolbox` shim。
-- `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，并切换 selector 组；日志不输出真实节点名。
+- `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，默认优先低倍率、非香港/HK 节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
 - `scripts/web-ui.sh`：远端本地 Web 控制台入口，通过 SSH 端口转发访问。
 

@@ -14,6 +14,8 @@ cache/
 network/mihomo/config.yaml
 network/mihomo/*.yaml.local
 network/mihomo/providers/
+/mihomo.yaml
+/mihomo.yml
 
 # Downloaded binaries and rulesets
 bin/

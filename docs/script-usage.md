@@ -46,7 +46,7 @@ Use this when Codex, GitHub, Hugging Face, PyPI, npm, or Git suddenly stops work
 toolbox repair
 ```
 
-The default repair refreshes mihomo autostart and shell hooks, starts mihomo, runs a short selector scan, verifies common proxy egress, checks Codex login egress, runs official `codex doctor --ascii --summary`, configures the current Git repository for the local proxy and `HTTP/1.1`, and checks whether Codex app-server inherited proxy variables.
+The default repair refreshes mihomo autostart and shell hooks, starts mihomo, runs a short selector scan, verifies common proxy egress, checks Codex login egress, runs official `codex doctor --ascii --summary`, configures the current Git repository for the local proxy and `HTTP/1.1`, and checks whether Codex app-server inherited proxy variables. Selector scans prefer available nodes below a detected `2.0` traffic multiplier and avoid Hong Kong/HK nodes by default; those nodes remain fallbacks when nothing else works.
 
 Common targeted repairs:
 
@@ -63,7 +63,7 @@ Use `toolbox repair app-server` only when Codex still reports app-server, MCP, W
 
 ## Network-first setup
 
-Use this on a fresh machine. It installs mihomo first, imports your local YAML file, configures mihomo autostart by default, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use a local YAML file for cold-start migration because a subscription URL may be blocked before the proxy is running.
+Use this on a fresh machine. It installs mihomo first, imports your local YAML file, normalizes the config to `mode: rule` by default, configures mihomo autostart, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use a local YAML file for cold-start migration because a subscription URL may be blocked before the proxy is running.
 
 ```bash
 bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml
@@ -84,6 +84,8 @@ bash scripts/network-first-setup.sh --file /path/to/mihomo.yaml --no-autostart
 # URL import is explicit and should only be used after direct network access works.
 bash scripts/network-first-setup.sh --url 'https://example.com/sub.yaml'
 ```
+
+When the imported YAML has no rules, the generated defaults proxy only OpenAI/Codex, GitHub, Hugging Face, PyPI, npm, and related domains, then fall back to `MATCH,DIRECT`. Existing rule sets are preserved. Use `MIHOMO_FORCE_RULE_MODE=0` or `--keep-mode` only when you deliberately want to keep the source YAML mode.
 
 ## Web UI over SSH forwarding
 
@@ -126,7 +128,7 @@ Codex ChatGPT login uses `chatgpt.com/backend-api/codex/deviceauth/usercode`, no
 toolbox codex-ready
 ```
 
-This command first checks the current selector. If the current node cannot request a Codex device code, it scans mihomo selector candidates and switches to one that can. Output uses candidate indexes instead of real node names, and any generated one-time device code is captured and redacted.
+This command first checks the current selector. If the current node cannot request a Codex device code, it scans mihomo selector candidates and switches to one that can. The scan prioritizes non-Hong Kong/HK nodes below a detected `2.0` traffic multiplier before trying fallback candidates. Output uses candidate indexes instead of real node names, and any generated one-time device code is captured and redacted.
 
 If Codex is already logged in, the check does not run `codex login --device-auth` by default, because the device-code login flow can disturb the active cached session. Use `--force-device-probe` only when you explicitly want to test the login flow itself.
 

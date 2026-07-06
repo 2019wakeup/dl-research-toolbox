@@ -73,6 +73,8 @@ toolbox codex-ready
 
 这个命令会自动扫描 mihomo selector，并切到一个可以请求 Codex device code 的节点。它不会输出真实节点名，也不会打印一次性 device code。
 
+扫描默认优先非香港/HK、低于 `2.0` 倍率的节点。香港或高倍率节点不会被硬删除，只会在没有更合适候选时作为 fallback，避免 Codex 登录修复因为节点排序再次选回不可用出口。
+
 远端/headless 机器优先使用官方 device-code 登录：
 
 ```bash

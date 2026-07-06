@@ -11,6 +11,7 @@ MIHOMO_EXTERNAL_CONTROLLER="${MIHOMO_EXTERNAL_CONTROLLER:-127.0.0.1:9090}"
 MIHOMO_DNS_LISTEN="${MIHOMO_DNS_LISTEN:-127.0.0.1:1053}"
 MIHOMO_TEST_URLS="${MIHOMO_TEST_URLS:-https://github.com https://huggingface.co https://pypi.org}"
 MIHOMO_AUTO_SELECT="${MIHOMO_AUTO_SELECT:-1}"
+MIHOMO_FORCE_RULE_MODE="${MIHOMO_FORCE_RULE_MODE:-1}"
 CONFIG_FILE="$MIHOMO_CONFIG_DIR/config.yaml"
 BACKUP_DIR="$MIHOMO_CONFIG_DIR/backups"
 URL="${MIHOMO_SUBSCRIPTION_URL:-}"
@@ -39,6 +40,7 @@ Options:
   --no-check          Skip listener and proxy egress checks.
   --replace-running   Stop any existing mihomo process before starting this config.
   --no-auto-select    Do not probe/select an available mihomo node before checks.
+  --keep-mode         Keep the source YAML mode instead of forcing mode: rule.
 
 Environment:
   MIHOMO_CONFIG_DIR              default: ~/.config/mihomo
@@ -47,6 +49,7 @@ Environment:
   MIHOMO_DNS_LISTEN              default: 127.0.0.1:1053, added only when omitted
   MIHOMO_TEST_URLS               URLs used by status --test-proxy
   MIHOMO_AUTO_SELECT             default: 1; probe/select a working selector node before checks
+  MIHOMO_FORCE_RULE_MODE         default: 1; rewrite top-level mode to rule on import
 
 Notes:
   This script expects Clash/Mihomo YAML. If your provider gives a raw
@@ -82,6 +85,10 @@ while [ "$#" -gt 0 ]; do
       MIHOMO_AUTO_SELECT=0
       shift
       ;;
+    --keep-mode)
+      MIHOMO_FORCE_RULE_MODE=0
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -99,6 +106,12 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+case "$MIHOMO_FORCE_RULE_MODE" in
+  1|true|yes|on) MIHOMO_FORCE_RULE_MODE=1 ;;
+  0|false|no|off) MIHOMO_FORCE_RULE_MODE=0 ;;
+  *) echo "Invalid MIHOMO_FORCE_RULE_MODE: $MIHOMO_FORCE_RULE_MODE" >&2; exit 2 ;;
+esac
 
 if [ -n "$URL" ] && [ -n "$SOURCE_FILE" ]; then
   echo "Use either --url or --file, not both." >&2
@@ -148,6 +161,33 @@ append_header_if_missing() {
   local header_file="$4"
   if ! top_level_has_key "$key" "$source_file"; then
     printf '%s\n' "$line" >> "$header_file"
+  fi
+}
+
+force_rule_mode() {
+  local source_file="$1"
+  local target_file="$2"
+  awk '
+    BEGIN { wrote = 0 }
+    /^mode:[[:space:]]*/ {
+      if (!wrote) {
+        print "mode: rule"
+        wrote = 1
+      }
+      next
+    }
+    { print }
+    END {
+      if (!wrote) {
+        print "mode: rule"
+      }
+    }
+  ' "$source_file" > "$target_file"
+  if ! cmp -s "$source_file" "$target_file"; then
+    mv "$target_file" "$source_file"
+    echo "Normalized mihomo mode: rule"
+  else
+    rm -f "$target_file"
   fi
 }
 
@@ -232,14 +272,21 @@ write_rules_if_missing() {
   cat >> "$target_file" <<'RULES'
 
 rules:
+  - DOMAIN-SUFFIX,openai.com,PROXY
+  - DOMAIN-SUFFIX,chatgpt.com,PROXY
+  - DOMAIN-SUFFIX,oaiusercontent.com,PROXY
+  - DOMAIN-SUFFIX,oaistatic.com,PROXY
   - DOMAIN-SUFFIX,github.com,PROXY
   - DOMAIN-SUFFIX,githubusercontent.com,PROXY
+  - DOMAIN-SUFFIX,githubassets.com,PROXY
   - DOMAIN-SUFFIX,huggingface.co,PROXY
   - DOMAIN-SUFFIX,hf.co,PROXY
   - DOMAIN-SUFFIX,pypi.org,PROXY
   - DOMAIN-SUFFIX,pythonhosted.org,PROXY
+  - DOMAIN-SUFFIX,npmjs.org,PROXY
+  - DOMAIN-SUFFIX,npmjs.com,PROXY
   - DOMAIN-SUFFIX,cn,DIRECT
-  - MATCH,PROXY
+  - MATCH,DIRECT
 RULES
 }
 
@@ -361,7 +408,11 @@ fi
 
 append_header_if_missing mixed-port "mixed-port: $MIHOMO_MIXED_PORT" "$CLEAN_FILE" "$HEADER_FILE"
 append_header_if_missing allow-lan "allow-lan: false" "$CLEAN_FILE" "$HEADER_FILE"
-append_header_if_missing mode "mode: rule" "$CLEAN_FILE" "$HEADER_FILE"
+if [ "$MIHOMO_FORCE_RULE_MODE" -eq 1 ]; then
+  force_rule_mode "$CLEAN_FILE" "$TMP_DIR/subscription.rule.yaml"
+else
+  append_header_if_missing mode "mode: rule" "$CLEAN_FILE" "$HEADER_FILE"
+fi
 append_header_if_missing log-level "log-level: info" "$CLEAN_FILE" "$HEADER_FILE"
 append_header_if_missing ipv6 "ipv6: false" "$CLEAN_FILE" "$HEADER_FILE"
 append_header_if_missing external-controller "external-controller: $MIHOMO_EXTERNAL_CONTROLLER" "$CLEAN_FILE" "$HEADER_FILE"

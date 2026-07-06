@@ -33,11 +33,18 @@ proxy-groups:
       - DIRECT
 
 rules:
+  - DOMAIN-SUFFIX,openai.com,PROXY
+  - DOMAIN-SUFFIX,chatgpt.com,PROXY
+  - DOMAIN-SUFFIX,oaiusercontent.com,PROXY
+  - DOMAIN-SUFFIX,oaistatic.com,PROXY
   - DOMAIN-SUFFIX,github.com,PROXY
   - DOMAIN-SUFFIX,githubusercontent.com,PROXY
+  - DOMAIN-SUFFIX,githubassets.com,PROXY
   - DOMAIN-SUFFIX,huggingface.co,PROXY
   - DOMAIN-SUFFIX,hf.co,PROXY
   - DOMAIN-SUFFIX,pypi.org,PROXY
   - DOMAIN-SUFFIX,pythonhosted.org,PROXY
+  - DOMAIN-SUFFIX,npmjs.org,PROXY
+  - DOMAIN-SUFFIX,npmjs.com,PROXY
   - DOMAIN-SUFFIX,cn,DIRECT
-  - MATCH,PROXY
+  - MATCH,DIRECT

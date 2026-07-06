@@ -9,6 +9,14 @@ SCAN_LIMIT="${CODEX_LOGIN_SCAN_LIMIT:-120}"
 PROBE_TIMEOUT="${CODEX_LOGIN_PROBE_TIMEOUT:-8}"
 PREFILTER_TIMEOUT="${CODEX_LOGIN_PREFILTER_TIMEOUT:-12}"
 FORCE_DEVICE_PROBE=0
+MAX_MULTIPLIER="${CODEX_LOGIN_MAX_MULTIPLIER:-${MIHOMO_SELECT_MAX_MULTIPLIER:-2.0}}"
+if [ "${CODEX_LOGIN_AVOID_REGEX+x}" ]; then
+  AVOID_REGEX="$CODEX_LOGIN_AVOID_REGEX"
+elif [ "${MIHOMO_SELECT_AVOID_REGEX+x}" ]; then
+  AVOID_REGEX="$MIHOMO_SELECT_AVOID_REGEX"
+else
+  AVOID_REGEX='(?i)(香港|港|hong[\s_-]*kong|\bhk\b|hkg)'
+fi
 
 usage() {
   cat <<'USAGE'
@@ -29,6 +37,10 @@ Options:
   --scan-limit N     Maximum leaf proxies to try in repair mode. Default: 120.
   --probe-timeout S  Seconds to wait for each Codex device-code probe. Default: 8.
   --prefilter-timeout S  Seconds for Cloudflare challenge prefilter. Default: 12.
+  --max-multiplier N     Prefer nodes below this detected traffic multiplier.
+                          Default: 2.0. Set to 0 to disable multiplier preference.
+  --avoid-regex REGEX    De-prioritize nodes whose names match this Python regex.
+                          Default avoids Hong Kong/HK nodes. Empty disables it.
   --force-device-probe  Run `codex login --device-auth` even if already logged in.
   --no-source-proxy  Do not source scripts/proxy-on.sh before checks.
   --no-strict        Print failures but exit zero.
@@ -38,6 +50,8 @@ Environment:
   CODEX_LOGIN_SCAN_LIMIT
   CODEX_LOGIN_PROBE_TIMEOUT
   CODEX_LOGIN_PREFILTER_TIMEOUT
+  CODEX_LOGIN_MAX_MULTIPLIER or MIHOMO_SELECT_MAX_MULTIPLIER
+  CODEX_LOGIN_AVOID_REGEX or MIHOMO_SELECT_AVOID_REGEX
 USAGE
 }
 
@@ -47,6 +61,8 @@ while [ "$#" -gt 0 ]; do
     --scan-limit) SCAN_LIMIT="${2:-}"; shift 2 ;;
     --probe-timeout) PROBE_TIMEOUT="${2:-}"; shift 2 ;;
     --prefilter-timeout) PREFILTER_TIMEOUT="${2:-}"; shift 2 ;;
+    --max-multiplier) MAX_MULTIPLIER="${2:-}"; shift 2 ;;
+    --avoid-regex) AVOID_REGEX="${2-}"; shift 2 ;;
     --force-device-probe) FORCE_DEVICE_PROBE=1; shift ;;
     --no-source-proxy) SOURCE_PROXY=0; shift ;;
     --no-strict) STRICT=0; shift ;;
@@ -78,6 +94,8 @@ CODEX_LOGIN_SCAN_LIMIT="$SCAN_LIMIT" \
 CODEX_LOGIN_PROBE_TIMEOUT="$PROBE_TIMEOUT" \
 CODEX_LOGIN_PREFILTER_TIMEOUT="$PREFILTER_TIMEOUT" \
 CODEX_LOGIN_FORCE_DEVICE_PROBE="$FORCE_DEVICE_PROBE" \
+CODEX_LOGIN_MAX_MULTIPLIER="$MAX_MULTIPLIER" \
+CODEX_LOGIN_AVOID_REGEX="$AVOID_REGEX" \
 python3 - <<'PY_CODEX_LOGIN_EGRESS'
 import json
 import os
@@ -97,8 +115,40 @@ SCAN_LIMIT = int(os.environ["CODEX_LOGIN_SCAN_LIMIT"])
 PROBE_TIMEOUT = int(os.environ["CODEX_LOGIN_PROBE_TIMEOUT"])
 PREFILTER_TIMEOUT = int(os.environ["CODEX_LOGIN_PREFILTER_TIMEOUT"])
 FORCE_DEVICE_PROBE = os.environ.get("CODEX_LOGIN_FORCE_DEVICE_PROBE") == "1"
+MAX_MULTIPLIER_RAW = os.environ.get("CODEX_LOGIN_MAX_MULTIPLIER", "2.0").strip()
+AVOID_REGEX = os.environ.get("CODEX_LOGIN_AVOID_REGEX", "")
 
 DEVICE_URL = "https://chatgpt.com/backend-api/codex/deviceauth/usercode"
+
+
+def parse_max_multiplier(value):
+    if not value or value.lower() in {"0", "off", "none", "false", "disable", "disabled"}:
+        return None
+    try:
+        parsed = float(value)
+    except ValueError:
+        print("[fail] invalid CODEX_LOGIN_MAX_MULTIPLIER")
+        raise SystemExit(2)
+    if parsed <= 0:
+        return None
+    return parsed
+
+
+MAX_MULTIPLIER = parse_max_multiplier(MAX_MULTIPLIER_RAW)
+if AVOID_REGEX:
+    try:
+        AVOID_RE = re.compile(AVOID_REGEX)
+    except re.error:
+        print("[fail] invalid CODEX_LOGIN_AVOID_REGEX")
+        raise SystemExit(2)
+else:
+    AVOID_RE = None
+
+MULTIPLIER_PATTERNS = [
+    re.compile(r"(?i)(?:倍率|rate|ratio|traffic|消耗)\s*[:：=]?\s*([0-9]+(?:\.[0-9]+)?)"),
+    re.compile(r"(?i)(?<![0-9.])([0-9]+(?:\.[0-9]+)?)\s*(?:x|倍)(?![a-z0-9])"),
+    re.compile(r"(?i)(?:x|倍)\s*([0-9]+(?:\.[0-9]+)?)"),
+]
 
 
 def print_ok(message: str) -> None:
@@ -107,6 +157,34 @@ def print_ok(message: str) -> None:
 
 def print_fail(message: str) -> None:
     print(f"[fail] {message}")
+
+
+def detected_multiplier(name: str):
+    for pattern in MULTIPLIER_PATTERNS:
+        match = pattern.search(name)
+        if not match:
+            continue
+        try:
+            return float(match.group(1))
+        except ValueError:
+            continue
+    return None
+
+
+def proxy_traits(name: str) -> dict[str, object]:
+    multiplier = detected_multiplier(name)
+    high_multiplier = (
+        MAX_MULTIPLIER is not None
+        and multiplier is not None
+        and multiplier >= MAX_MULTIPLIER
+    )
+    avoided_region = bool(AVOID_RE and AVOID_RE.search(name))
+    return {
+        "multiplier": multiplier,
+        "high_multiplier": high_multiplier,
+        "avoided_region": avoided_region,
+        "penalty": int(high_multiplier) + int(avoided_region),
+    }
 
 
 def sanitize(text: str) -> str:
@@ -275,7 +353,17 @@ def repair() -> tuple[bool, str]:
 
     selectors = [(g, t, opts, now) for g, t, opts, now in groups if t == "Selector"]
     original = {g: now for g, _, _, now in selectors if now}
-    print(f"codex_login_egress: selectors={len(selectors)} leaf_proxies={len(leaf)} scan_limit={min(SCAN_LIMIT, len(leaf))}")
+    original_index = {name: idx for idx, name in enumerate(leaf, 1)}
+    traits = {name: proxy_traits(name) for name in leaf}
+
+    def preference_key(name: str) -> tuple[int, int, int, int]:
+        trait = traits[name]
+        return (
+            int(trait["penalty"]),
+            int(trait["avoided_region"]),
+            int(trait["high_multiplier"]),
+            original_index[name],
+        )
 
     candidates = []
     seen = set()
@@ -283,19 +371,39 @@ def repair() -> tuple[bool, str]:
         eligible = [g for g, _, opts, _ in selectors if name in opts]
         if eligible and name not in seen:
             seen.add(name)
-            candidates.append((leaf_index, name, eligible))
+            candidates.append((preference_key(name), leaf_index, name, eligible))
+    candidates.sort()
 
-    for ordinal, (leaf_index, name, eligible) in enumerate(candidates[:SCAN_LIMIT], 1):
+    preferred_count = sum(1 for item in traits.values() if item["penalty"] == 0)
+    high_multiplier_count = sum(1 for item in traits.values() if item["high_multiplier"])
+    avoided_region_count = sum(1 for item in traits.values() if item["avoided_region"])
+    print(
+        "codex_login_egress: "
+        f"selectors={len(selectors)} leaf_proxies={len(leaf)} preferred_leaf_proxies={preferred_count} "
+        f"high_multiplier_fallbacks={high_multiplier_count} avoided_region_fallbacks={avoided_region_count} "
+        f"scan_limit={min(SCAN_LIMIT, len(candidates))}"
+    )
+
+    for ordinal, (_, leaf_index, name, eligible) in enumerate(candidates[:SCAN_LIMIT], 1):
         for group in eligible:
             put_proxy(group, name)
         time.sleep(0.35)
         pre_state, pre_detail = curl_prefilter()
         state, detail = codex_device_probe()
-        print(f"codex_login_egress: candidate={ordinal} leaf_index={leaf_index} groups={len(eligible)} prefilter={pre_state} result={state}")
+        trait = traits[name]
+        print(
+            f"codex_login_egress: candidate={ordinal} leaf_index={leaf_index} groups={len(eligible)} "
+            f"high_multiplier={int(trait['high_multiplier'])} avoided_region={int(trait['avoided_region'])} "
+            f"prefilter={pre_state} result={state}"
+        )
         if state == "success":
             for group in eligible:
                 put_proxy(group, name)
-            print_ok(f"selected Codex-login-capable proxy candidate={ordinal} leaf_index={leaf_index} groups={len(eligible)}")
+            print_ok(
+                f"selected Codex-login-capable proxy candidate={ordinal} leaf_index={leaf_index} "
+                f"groups={len(eligible)} high_multiplier={int(trait['high_multiplier'])} "
+                f"avoided_region={int(trait['avoided_region'])}"
+            )
             return True, "selected"
 
     for group, name in original.items():

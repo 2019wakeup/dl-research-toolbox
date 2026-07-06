@@ -54,6 +54,9 @@ It refreshes mihomo autostart/profile hooks, starts mihomo, selects a reachable
 selector candidate, verifies common proxy egress, checks Codex login egress,
 runs official `codex doctor --ascii --summary`, configures the caller Git repo
 for local proxy plus `HTTP/1.1`, and inspects Codex app-server proxy env.
+Selector repair prefers candidates below a detected `2.0` traffic multiplier
+and avoids Hong Kong/HK nodes by default. High-multiplier or Hong Kong nodes are
+fallbacks only, so repair remains usable when preferred nodes are down.
 
 Lower-level autostart-only command:
 

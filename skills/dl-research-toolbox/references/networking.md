@@ -9,7 +9,7 @@ bash install.sh --mihomo-yaml /path/to/mihomo.yaml
 source scripts/proxy-on.sh
 ```
 
-`install.sh` is the operator-facing wrapper. It calls `network-first-setup.sh`, installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI plus the Linux `bubblewrap` sandbox prerequisite, runs full `bootstrap.sh`, and finishes with `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
+`install.sh` is the operator-facing wrapper. It calls `network-first-setup.sh`, installs minimal network prerequisites, installs mihomo, imports a local Clash/Mihomo YAML file, normalizes the imported config to `mode: rule` by default, validates listeners and proxy egress, installs mihomo autostart by default, sources proxy variables in its own process, installs Codex CLI plus the Linux `bubblewrap` sandbox prerequisite, runs full `bootstrap.sh`, and finishes with `scripts/doctor.sh`. Use `--url` only when direct access to the subscription endpoint already works.
 
 For cold-start migration, transfer a YAML file to the new machine and pass it with `--file`. Do not depend on the new machine downloading a subscription URL before the proxy exists.
 
@@ -20,6 +20,8 @@ bash install.sh --mihomo-yaml /path/to/mihomo.yaml --no-bootstrap
 ```
 
 The import script expects Clash/Mihomo YAML. It prompts for a local YAML path when no source is provided. It rejects raw node-list subscriptions such as `ss://`, `vmess://`, `vless://`, or `trojan://` instead of using third-party converters.
+
+By default, import rewrites only the top-level `mode` to `rule`; use `--keep-mode` or `MIHOMO_FORCE_RULE_MODE=0` only when preserving the source mode is intentional. If the YAML has no `rules`, the generated default rules proxy OpenAI/Codex, GitHub, Hugging Face, PyPI, npm, and related domains, then fall back to `MATCH,DIRECT` to avoid global proxy consumption.
 
 If an existing mihomo process already owns the configured port:
 
@@ -36,6 +38,8 @@ bash scripts/doctor.sh
 ```
 
 The status script checks process state, configured TCP listeners such as `mixed-port` and `external-controller`, DNS UDP listener when configured, controller `/version`, and proxy egress through `127.0.0.1:<mixed-port>`.
+
+When controller/listeners are healthy but egress fails, run `bash scripts/mihomo-select-best.sh`. It probes selector candidates without printing real node names. The default ordering prefers nodes below a detected `2.0` traffic multiplier and avoids Hong Kong/HK names; high-multiplier or Hong Kong nodes remain fallbacks so repair does not fail purely because all preferred nodes are down. Override with `MIHOMO_SELECT_MAX_MULTIPLIER` and `MIHOMO_SELECT_AVOID_REGEX` when needed.
 
 ## Safety
 
