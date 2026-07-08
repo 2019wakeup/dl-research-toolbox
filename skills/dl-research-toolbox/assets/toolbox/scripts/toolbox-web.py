@@ -34,6 +34,8 @@ ACTIONS: dict[str, tuple[str, list[str], int]] = {
     "deep_proxy": ("深度代理检查", ["bash", "scripts/verify-proxy-deep.sh"], 300),
     "autostart_status": ("自启状态", ["bash", "scripts/mihomo-autostart.sh", "status"], 60),
     "autostart_install": ("安装/修复自启", ["bash", "scripts/mihomo-autostart.sh", "install", "--mode", "auto", "--enable-linger"], 120),
+    "mihomo_select_schedule_status": ("定时选点状态", ["bash", "scripts/mihomo-select-schedule.sh", "status"], 60),
+    "mihomo_select_schedule_install": ("安装定时选点", ["bash", "scripts/mihomo-select-schedule.sh", "install", "--interval-hours", "6"], 120),
 }
 
 
@@ -213,6 +215,8 @@ def page_html() -> str:
         <div class="actions">
           <button data-action="autostart_status">查看自启</button>
           <button data-action="autostart_install">安装/修复自启</button>
+          <button data-action="mihomo_select_schedule_status">查看定时选点</button>
+          <button data-action="mihomo_select_schedule_install">安装定时选点</button>
         </div>
       </section>
       <section class="panel span-8">

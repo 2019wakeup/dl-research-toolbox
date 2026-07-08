@@ -65,6 +65,15 @@ toolbox repair
 
 它会刷新自启 hook、启动 mihomo、短扫并切换到可用节点，再复测 Codex 官方 doctor 和常用出口。
 
+如果只是希望定期重新选择更好的节点，不要把完整 `toolbox repair` 放进定时任务。安装轻量定时选点：
+
+```bash
+toolbox mihomo schedule install --interval-hours 6
+toolbox mihomo schedule status
+```
+
+时间单位只接受小时。定时任务只启动 mihomo、执行安全选点并做轻量代理出口检查，不会周期性跑 Codex 登录修复、Git 配置或 app-server 重启。普通 systemd 机器使用 timer；没有 systemd 的容器使用 profile/bashrc 拉起后台 loop，这仍然需要至少出现一次 shell 才能启动。
+
 Codex ChatGPT 登录还需要额外验证。`api.openai.com` 可达只说明 API endpoint 可用；`codex login --device-auth` 还会访问 `chatgpt.com/backend-api/codex/deviceauth/usercode`。如果该 endpoint 被当前代理节点返回 `403 Forbidden` 或 Cloudflare challenge，运行：
 
 ```bash

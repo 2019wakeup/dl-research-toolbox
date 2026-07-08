@@ -61,6 +61,40 @@ toolbox repair --deep
 
 Use `toolbox repair app-server` only when Codex still reports app-server, MCP, WebSocket, or request timeouts after `toolbox repair codex` passes. It restarts `codex app-server` processes and can interrupt the current Codex desktop/TUI connection.
 
+## Timed proxy node selection
+
+Do not run the full repair bundle on a timer. It includes Codex login repair,
+Git config changes, and app-server inspection. For periodic node optimization,
+install the lightweight timed selector:
+
+```bash
+# The interval is in hours only. Default is 6.
+toolbox mihomo schedule install --interval-hours 6
+
+# Inspect timer/loop status and recent logs.
+toolbox mihomo schedule status
+
+# Run one selection immediately without installing a timer.
+toolbox mihomo schedule run
+
+# Remove timer/loop hooks.
+toolbox mihomo schedule uninstall
+```
+
+The scheduled run starts mihomo if needed, uses `mihomo-select-best` with the
+same low-multiplier and non-Hong Kong/HK preference, then verifies proxy egress.
+It does not run Codex login repair, Git repair, or app-server restart. Override
+probe cost and cadence with:
+
+```bash
+toolbox mihomo schedule install --interval-hours 12 --limit 30 --timeout 2000
+```
+
+On normal systemd hosts the installer uses a systemd user or system timer. In
+containers without systemd it installs a profile/bashrc-backed background loop;
+that loop starts when a login or interactive shell appears, which is the same
+boundary as the container proxy autostart fallback.
+
 ## Network-first setup
 
 Use this on a fresh machine. It installs mihomo first, imports your local YAML file, normalizes the config to `mode: rule` by default, configures mihomo autostart, enables proxy variables for the script process, installs Codex CLI, then runs full bootstrap through the proxy. Use a local YAML file for cold-start migration because a subscription URL may be blocked before the proxy is running.

@@ -90,12 +90,42 @@ Managed hook markers:
 
 Install must refresh managed blocks instead of leaving stale paths in place.
 
+## Timed Node Selection
+
+Use the lightweight schedule, not the full repair bundle, for periodic node
+optimization:
+
+```bash
+toolbox mihomo schedule install --interval-hours 6
+toolbox mihomo schedule status
+toolbox mihomo schedule run
+```
+
+The interval is in whole hours. The scheduled run starts mihomo, executes
+`mihomo-select-best` with the default low-multiplier/non-Hong Kong preference,
+and verifies proxy egress. It must not run Codex login repair, Git repair, or
+app-server restart on a timer.
+
+Expected installation behavior:
+
+- systemd user manager: install a user timer.
+- systemd system manager with root/sudo: install a system timer.
+- no systemd: install a profile/bashrc-backed background loop.
+
+Fallback loop markers:
+
+```text
+# >>> dl-research-toolbox mihomo select schedule >>>
+# <<< dl-research-toolbox mihomo select schedule <<<
+```
+
 ## Verify
 
 Run:
 
 ```bash
 bash -n scripts/mihomo-autostart.sh
+bash -n scripts/mihomo-select-schedule.sh
 bash -n scripts/proxy-on.sh
 bash -n scripts/proxy-off.sh
 bash -n scripts/network-first-setup.sh

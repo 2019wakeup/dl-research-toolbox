@@ -147,6 +147,24 @@ toolbox repair --deep
 
 `toolbox repair app-server` 会重启 Codex app-server，可能打断当前 Codex 桌面/TUI 连接，所以没有放进默认 `repair`，需要时显式调用。
 
+如果希望定时重新选择代理节点，不要周期性跑完整 `toolbox repair`。使用轻量定时选点：
+
+```bash
+# 每 6 小时选择一次最优可用节点；时间单位只接受小时。
+toolbox mihomo schedule install --interval-hours 6
+
+# 查看定时状态和最近日志。
+toolbox mihomo schedule status
+
+# 立即跑一次轻量选点。
+toolbox mihomo schedule run
+
+# 移除定时任务。
+toolbox mihomo schedule uninstall
+```
+
+这个定时任务只会启动 mihomo、按低倍率/非香港优先规则执行 `mihomo-select-best`，并做轻量代理出口检查；不会周期性执行 Codex 登录修复、Git 配置或 app-server 重启。默认优先使用 systemd timer；没有 systemd 的容器会退回到 profile/bashrc 拉起的后台 loop。
+
 ## 安装内容
 
 系统和 CLI 工具：
@@ -348,6 +366,7 @@ bash ~/.codex/skills/dl-research-toolbox/scripts/install_toolbox.sh --path ~/dl-
 - `scripts/check-codex-sandbox.sh`：检查 Codex Linux sandbox 的 `bubblewrap` 前置项和容器 namespace 能力。
 - `scripts/doctor.sh`：安装后统一体检入口（默认自动启用本地代理环境，检查 Codex device-code 登录出口，并运行官方 `codex doctor`）。
 - `scripts/network-repair.sh`：常见网络/Codex/Git/app-server 快速修复入口。
+- `scripts/mihomo-select-schedule.sh`：小时级定时代理选点，避免周期性执行完整 repair。
 - `scripts/install-toolbox-cli.sh`：安装或修复 `~/.local/bin/toolbox` symlink，并在 root/可写系统路径上维护 `/usr/local/bin/toolbox` shim。
 - `scripts/mihomo-select-best.sh`：通过本地 controller 探测可用节点，默认优先低倍率、非香港/HK 节点，并切换 selector 组；日志不输出真实节点名。
 - `scripts/web-tunnel.sh`：本地侧 SSH tunnel helper，可保存目标后用一条命令启动远端 Web UI。
@@ -387,6 +406,7 @@ git grep -nE 'subscription|token|secret|password|passwd|cookie|Authorization|Bea
 |   |-- network-first-setup.sh         # 网络优先底层入口
 |   |-- doctor.sh                      # 统一体检入口（默认自动启用本地代理环境和官方 Codex doctor）
 |   |-- network-repair.sh              # 常见网络/Codex/Git/app-server 快速修复入口
+|   |-- mihomo-select-schedule.sh      # 小时级定时代理选点
 |   |-- install-toolbox-cli.sh         # 安装/修复 toolbox CLI symlink/shim
 |   |-- web-tunnel.sh                  # 本地侧 SSH tunnel helper
 |   |-- web-ui.sh                      # 远端本地 Web 控制台启动器

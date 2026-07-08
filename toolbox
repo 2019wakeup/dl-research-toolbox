@@ -37,7 +37,7 @@ Core workflow:
 Network:
   network [repair opts]      Alias for repair.
   mihomo <subcommand> [args] Manage mihomo.
-    install | import | start | stop | restart | status | check | best
+    install | import | start | stop | restart | status | check | best | schedule
   autostart [args]          Install/repair autostart by default.
   env [show|exports|on|off] Inspect or print proxy environment helpers.
   codex-login [check|repair] Verify or repair Codex ChatGPT login egress.
@@ -56,6 +56,8 @@ Examples:
   toolbox status
   toolbox doctor
   toolbox repair
+  toolbox mihomo schedule install --interval-hours 6
+  toolbox mihomo schedule status
   toolbox repair status
   toolbox repair codex
   toolbox repair app-server
@@ -263,6 +265,9 @@ case "$cmd" in
         ;;
       best|select-best)
         exec bash scripts/mihomo-select-best.sh "$@"
+        ;;
+      schedule|select-schedule)
+        exec bash scripts/mihomo-select-schedule.sh "$@"
         ;;
       *)
         die "unknown mihomo subcommand: $sub"
